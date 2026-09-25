@@ -1,441 +1,322 @@
-  <!-- Content Wrapper. Contains page content -->
-  <!-- <div class="content-wrapper"> -->
-  <!-- Content Header (Page header) -->
-  <?php
-  $totalUsuarios = ControladorUsuarios::ctrContarUsuarios();
-  $totalUsuariosActivos = ControladorUsuarios::ctrContarUsuariosActivos();
-  ?>
+<!-- Content Header (Encabezado de la página) -->
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1><i class="fas fa-users-cog mr-2"></i> Gestión de Usuarios</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="inicio"><i class="fas fa-home mr-1"></i> Inicio</a></li>
+          <li class="breadcrumb-item active">Gestión de Usuarios</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <section class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1>Gestion de usuarios</h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="inicio">Inicio</a></li>
-            <!-- <li class="breadcrumb-item active">Inicio</li> -->
-          </ol>
+<!-- Main content -->
+<section class="content">
+  <div class="container-fluid">
+
+    <!-- Tarjetas de métricas informativas (Actualizadas asíncronamente) -->
+    <div class="row">
+      <div class="col-lg-3 col-sm-6 col-12">
+        <div class="small-box bg-info">
+          <div class="inner">
+            <h3 id="totalUsuarios">--</h3>
+            <p>Total Registrados</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-users"></i>
+          </div>
         </div>
       </div>
-    </div><!-- /.container-fluid -->
-  </section>
 
-  <!-- Main content -->
-  <section class="content">
-
-    <div class="container-fluid">
-      <!-- Small boxes (Stat box) -->
-      <div class="row">
-
-
-        <div class="col-lg-3 col-sm-12">
-          <!-- small box -->
-          <div class="small-box bg-info">
-            <div class="inner">
-              <h3 id="totalUsuarios"><?php echo $totalUsuarios['total']; ?></h3>
-              <p>Total registrados</p>
-            </div>
-            <div class="icon">
-              <i class="ion ion-person"></i>
-            </div>
+      <div class="col-lg-3 col-sm-6 col-12">
+        <div class="small-box bg-success">
+          <div class="inner">
+            <h3 id="totalUsuariosActivos">--</h3>
+            <p>Usuarios Activos</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-user-check"></i>
           </div>
         </div>
-        <!-- ./col -->
-
-        <div class="col-lg-3 col-12">
-          <!-- small box -->
-          <div class="small-box bg-info">
-            <div class="inner">
-              <h3 id="totalUsuariosActivos"><?php echo $totalUsuariosActivos['total']; ?></h3>
-              <p>Usuarios activos</p>
-            </div>
-            <div class="icon">
-              <i class="ion ion-person-stalker"></i>
-            </div>
-          </div>
-        </div>
-        <!-- ./col -->
-
-        <div class="col-lg-3 col-12">
-          <!-- small box -->
-          <div class="small-box bg-info">
-            <div class="inner">
-              <h3>150</h3>
-              <p>Documentos en trámite</p>
-            </div>
-            <div class="icon">
-              <i class="ion ion-bag"></i>
-            </div>
-          </div>
-        </div>
-        <!-- ./col -->
-
-        <div class="col-lg-3 col-12">
-          <!-- small box -->
-          <div class="small-box bg-info">
-            <div class="inner">
-              <h3>150</h3>
-              <p>Documentos cerrados</p>
-            </div>
-            <div class="icon">
-              <i class="ion ion-bag"></i>
-            </div>
-          </div>
-        </div>
-        <!-- ./col -->
-
-
-
-
       </div>
-      <!-- /.row -->
 
-
-      <div class="row">
-        <div class="col-12">
-
-          <div class="card">
-            <div class="card-header">
-              <!-- <h3 class="card-title">DataTable with default features</h3> -->
-              <div class="card-tools ml-auto">
-                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modal-agregarUsuario">Agregar Usuario</button>
-              </div>
-            </div>
-            <!-- /.card-header -->
-            <div class="card-body">
-              <table id="tblUsuarios" class="table table-bordered table-striped">
-                <thead>
-                  <tr>
-                    <th>id</th>
-                    <th>usuario</th>
-                    <th>identificacion</th>
-                    <th>Rol</th>
-                    <th>Dependencia</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php
-                  $respuesta = ControladorUsuarios::ctrMostrarUsuarios();
-                  // var_dump($respuesta);
-
-                  foreach ($respuesta as $usuario) {
-                    echo '<tr>';
-                    echo '<td>' . $usuario['id_usuario'] . '</td>';
-                    echo '<td>' . $usuario['nombre'] . '</td>';
-                    echo '<td>' . $usuario['num_identificacion'] . '</td>';
-                    echo '<td>' . $usuario['rol'] . '</td>';
-                    echo '<td>' . $usuario['dependencia'] . '</td>';
-                    echo '<td>';
-                    // boton de estado activo o inactivo
-                    if ($usuario['estado'] == 'Activo') {
-                      echo "<button class='btn btn-xs btn-success btnActivarUsuario' data-estado-usuario='Inactivo' data-estadoUsuario='Inactivo' data-id-usuario='" . $usuario['id_usuario'] . "' data-idUsuario='" . $usuario['id_usuario'] . "'>Activo</button>";
-                    } else {
-                      echo "<button class='btn btn-xs btn-danger btnActivarUsuario' data-estado-usuario='Activo' data-estadoUsuario='Activo' data-id-usuario='" . $usuario['id_usuario'] . "' data-idUsuario='" . $usuario['id_usuario'] . "'>Inactivo</button>";
-                    }
-
-                    echo '</td>';
-                    echo '<td>';
-                    echo '<button class="btnEditarUsuario" data-id-usuario="' . $usuario['id_usuario'] . '" data-idUsuario="' . $usuario['id_usuario'] . '" data-toggle="modal" data-target="#modal-editarUsuario"><i class="fa fa-edit"></i></button>';
-                    echo '<button><i class="fa fa-eye"></i></button>';
-                    echo '</td>';
-                    echo '</tr>';
-                  }  // End of foreach
-
-                  ?>
-
-                </tbody>
-
-
-              </table>
-            </div>
-            <!-- /.card-body -->
+      <div class="col-lg-3 col-sm-6 col-12">
+        <div class="small-box bg-warning">
+          <div class="inner">
+            <h3 id="totalUsuariosInactivos">--</h3>
+            <p>Usuarios Inactivos</p>
           </div>
-          <!-- /.card -->
+          <div class="icon">
+            <i class="fas fa-user-times"></i>
+          </div>
+        </div>
+      </div>
 
+      <div class="col-lg-3 col-sm-6 col-12">
+        <div class="small-box bg-secondary">
+          <div class="inner">
+            <h3>ODIN</h3>
+            <p>Control de Acceso</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
         </div>
       </div>
     </div>
 
-  </section>
-  <!-- /.content -->
-  <!-- </div> -->
-  <!-- /.content-wrapper -->
-
-
-  <!-- ***************************************************************************************************************************************** -->
-
-  <!-- MODAL DE NUEVO USUARIO -->
-  <div class="modal fade" id="modal-agregarUsuario">
-    <div class="modal-dialog">
-      <div class="modal-content">
-
-        <div class="modal-header bg-primary">
-
-          <h4 class="modal-title">Agregar Usuario</h4>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
+    <!-- TARJETA PRINCIPAL CON TABLA VACÍA PARA DATATABLES AJAX -->
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-list mr-1"></i> Listado de Usuarios</h3>
+        <div class="card-tools ml-auto">
+          <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modal-agregarUsuario">
+            <i class="fas fa-user-plus mr-1"></i> Agregar Usuario
           </button>
-
         </div>
+      </div>
 
+      <div class="card-body">
+        <table id="tblUsuarios" class="table table-bordered table-striped dt-responsive nowrap" style="width:100%">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Identificación</th>
+              <th>Correo</th>
+              <th>Rol</th>
+              <th>Dependencia</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- El contenido se renderiza dinámicamente vía AJAX desde vistas/js/usuarios.js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- =============================================
+MODAL: AGREGAR USUARIO
+============================================= -->
+<div class="modal fade" id="modal-agregarUsuario" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="fas fa-user-plus mr-1"></i> Registrar Nuevo Usuario</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <form id="frmAgregarUsuario">
         <div class="modal-body">
-          <!-- <p>One fine body&hellip;</p> -->
-          <form id="frmUsuarios" class="form-horizontal" method="post">
-            <div class="card-body">
+          <div class="row">
 
-              <!-- select de tipo de documento y numero de identificacion -->
-              <div class="form-group row">
+            <!-- Tipo de Documento -->
+            <div class="col-md-4 form-group">
+              <label for="nuevoTipoDocumento">Tipo Documento (*)</label>
+              <select class="form-control" id="nuevoTipoDocumento" required>
+                <option value="CC">Cédula de Ciudadanía</option>
+                <option value="TI">Tarjeta de Identidad</option>
+                <option value="CE">Cédula de Extranjería</option>
+                <option value="PA">Pasaporte</option>
+              </select>
+            </div>
 
-                <div class="col-md-5">
-                  <select class="form-control" id="inputTipoDocumento" name="nuevoTipoDocumento">
-                    <option value="">Seleccione</option>
-                    <option value="TI">Tarjeta de identidad</option>
-                    <option value="CC">Cédula de ciudadanía</option>
-                    <option value="CE">Cédula de extranjería</option>
-                    <option value="PA">Pasaporte</option>
-                  </select>
-                </div>
+            <!-- Número de Identificación -->
+            <div class="col-md-8 form-group">
+              <label for="nuevoNumeroIdentificacion">Número de Identificación (*)</label>
+              <input type="text" class="form-control" id="nuevoNumeroIdentificacion" placeholder="Ej: 1098765432" required>
+            </div>
 
-                <div class="col-md-7">
-                  <input type="text" class="form-control" id="inputNumeroIdentificacion" placeholder="Número de identificación" name="nuevoNumeroIdentificacion">
-                </div>
-
-              </div>
-
-              <!-- input de nombre de usuario -->
-              <div class="input-group mb-3">
+            <!-- Nombre Completo -->
+            <div class="col-md-6 form-group">
+              <label for="nuevoNombre">Nombre Completo (*)</label>
+              <div class="input-group">
                 <div class="input-group-prepend">
                   <span class="input-group-text"><i class="fas fa-user"></i></span>
                 </div>
-                <input type="text" class="form-control" id="inputUsuario" placeholder="Nombre completo" name="nuevoNombre">
+                <input type="text" class="form-control" id="nuevoNombre" placeholder="Nombres y Apellidos" required>
               </div>
+            </div>
 
-              <!-- input de correo electronico -->
-              <div class="input-group mb-3">
+            <!-- Correo Electrónico -->
+            <div class="col-md-6 form-group">
+              <label for="nuevoCorreo">Correo Electrónico (*)</label>
+              <div class="input-group">
                 <div class="input-group-prepend">
                   <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                 </div>
-                <input type="email" class="form-control" placeholder="Email" name="nuevoCorreo">
+                <input type="email" class="form-control" id="nuevoCorreo" placeholder="correo@ejemplo.com" required>
               </div>
+            </div>
 
-              <!-- input de direccion -->
-              <div class="input-group mb-3">
+            <!-- Rol -->
+            <div class="col-md-6 form-group">
+              <label for="nuevoRol">Rol de Acceso (*)</label>
+              <select class="form-control" id="nuevoRol" required>
+                <option value="">Cargando roles...</option>
+              </select>
+            </div>
+
+            <!-- Dependencia -->
+            <div class="col-md-6 form-group">
+              <label for="nuevaDependencia">Dependencia (*)</label>
+              <select class="form-control" id="nuevaDependencia" required>
+                <option value="">Cargando dependencias...</option>
+              </select>
+            </div>
+
+            <!-- Dirección -->
+            <div class="col-md-6 form-group">
+              <label for="nuevaDireccion">Dirección</label>
+              <div class="input-group">
                 <div class="input-group-prepend">
                   <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
                 </div>
-                <input type="text" class="form-control" placeholder="Dirección" name="nuevaDireccion">
+                <input type="text" class="form-control" id="nuevaDireccion" placeholder="Dirección de residencia">
               </div>
+            </div>
 
-
-              <!-- input de telefono -->
-              <div class="input-group mb-3">
+            <!-- Teléfono -->
+            <div class="col-md-6 form-group">
+              <label for="nuevoTelefono">Teléfono</label>
+              <div class="input-group">
                 <div class="input-group-prepend">
                   <span class="input-group-text"><i class="fas fa-phone"></i></span>
                 </div>
-                <input type="text" class="form-control" placeholder="Teléfono" name="nuevoTelefono">
-              </div>
-
-
-              <!-- select del rol del usuario -->
-              <div class="form-group row">
-                <label for="inputRol" class="col-sm-2 col-form-label">Rol</label>
-                <div class="col-sm-10">
-
-                  <?php
-                  $respuesta = ControladorRoles::ctrMostrarRoles();
-                  // var_dump($respuesta);
-                  echo '<select class="form-control" id="inputRol" name="nuevoRol">';
-                  echo '<option value="">Seleccione</option>';
-                  foreach ($respuesta as $rol) {
-                    echo '<option value="' . $rol['id_rol'] . '">' . $rol['nombre'] . '</option>';
-                  }
-                  echo '</select>';
-
-                  ?>
-                </div>
-              </div>
-
-              <!-- select de la dependencia del usuario -->
-              <div class="form-group row">
-                <label for="inputDependencia" class="col-md-3 col-form-label">Dependencia</label>
-                <div class="col-md-9">
-
-                  <?php
-                  $respuesta = ControladorDependencias::ctrMostrarDependencias();
-                  // var_dump($respuesta);
-                  echo '<select class="form-control" id="inputDependencia" name="nuevaDependencia">';
-                  echo '<option value="">Seleccione</option>';
-                  foreach ($respuesta as $dependencia) {
-                    echo '<option value="' . $dependencia['id_dependencia'] . '">' . $dependencia['nombre'] . '</option>';
-                  }
-                  echo '</select>';
-                  ?>
-
-
-                </div>
+                <input type="text" class="form-control" id="nuevoTelefono" placeholder="Teléfono de contacto">
               </div>
             </div>
-            <div class="modal-footer justify-content-between">
-              <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
-              <button type="submit" class="btn btn-primary">Guardar</button>
-            </div>
 
-            <?php
-              ControladorUsuarios::ctrCrearUsuario();
-            ?>
-
-
-          </form>
-
+          </div>
         </div>
 
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1"></i> Guardar Usuario</button>
+        </div>
+      </form>
 
-      </div>
-      <!-- /.modal-content -->
     </div>
-    <!-- /.modal-dialog -->
   </div>
-  <!-- /.MODAL DE NUEVO USUARIO -->
+</div>
 
+<!-- =============================================
+MODAL: EDITAR USUARIO
+============================================= -->
+<div class="modal fade" id="modal-editarUsuario" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
 
-  <!-- ***************************************************************************************************************************************** -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="fas fa-user-edit mr-1"></i> Modificar Usuario</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
 
-  <!-- MODAL DE EDICION USUARIO -->
-  <div class="modal fade" id="modal-editarUsuario">
-    <div class="modal-dialog">
-      <div class="modal-content">
-
-        <div class="modal-header bg-primary">
-
-          <h4 class="modal-title">Editar Usuario</h4>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-
-        </div>
-
+      <form id="frmEditarUsuario">
         <div class="modal-body">
-          <!-- <p>One fine body&hellip;</p> -->
-          <form id="frmEditarUsuario" class="form-horizontal" method="post">
-            <div class="card-body">
+          <input type="hidden" id="editarIdUsuario">
 
-              <!-- input oculto con id del usuario -->
-              <input type="hidden" id="idUsuario" name="idUsuario">
+          <div class="row">
 
-              <!-- select de tipo de documento y numero de identificacion -->
-              <div class="form-group row">
+            <!-- Tipo Documento (Solo lectura) -->
+            <div class="col-md-4 form-group">
+              <label for="editarTipoDocumento">Tipo Documento</label>
+              <input type="text" class="form-control" id="editarTipoDocumento" readonly>
+            </div>
 
-                <div class="col-md-5">
-                  <select class="form-control" id="editarTipoDocumento" name="editarTipoDocumento" disabled>
-                    <option value="">Seleccione</option>
-                    <option value="TI">Tarjeta de identidad</option>
-                    <option value="CC">Cédula de ciudadanía</option>
-                    <option value="CE">Cédula de extranjería</option>
-                    <option value="PA">Pasaporte</option>
-                  </select>
-                </div>
+            <!-- Número de Identificación (Solo lectura) -->
+            <div class="col-md-8 form-group">
+              <label for="editarNumeroIdentificacion">Número de Identificación</label>
+              <input type="text" class="form-control" id="editarNumeroIdentificacion" readonly>
+            </div>
 
-                <div class="col-md-7">
-                  <input type="text" class="form-control" id="editarNumeroIdentificacion" placeholder="Número de identificación" name="editarNumeroIdentificacion" readonly>
-                </div>
-
-              </div>
-
-              <!-- input de nombre de usuario -->
-              <div class="input-group mb-3">
+            <!-- Nombre Completo -->
+            <div class="col-md-6 form-group">
+              <label for="editarNombre">Nombre Completo (*)</label>
+              <div class="input-group">
                 <div class="input-group-prepend">
                   <span class="input-group-text"><i class="fas fa-user"></i></span>
                 </div>
-                <input type="text" class="form-control" id="editarNombreUsuario" placeholder="Nombre completo" name="editarNombre">
+                <input type="text" class="form-control" id="editarNombre" required>
               </div>
+            </div>
 
-              <!-- input de correo electronico -->
-              <div class="input-group mb-3">
+            <!-- Correo Electrónico -->
+            <div class="col-md-6 form-group">
+              <label for="editarCorreo">Correo Electrónico (*)</label>
+              <div class="input-group">
                 <div class="input-group-prepend">
                   <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                 </div>
-                <input type="email" class="form-control" id="editarCorreo" placeholder="Email" name="editarCorreo">
+                <input type="email" class="form-control" id="editarCorreo" required>
               </div>
+            </div>
 
-              <!-- input de direccion -->
-              <div class="input-group mb-3">
+            <!-- Rol -->
+            <div class="col-md-6 form-group">
+              <label for="editarRol">Rol de Acceso (*)</label>
+              <select class="form-control" id="editarRol" required>
+                <option value="">Cargando roles...</option>
+              </select>
+            </div>
+
+            <!-- Dependencia -->
+            <div class="col-md-6 form-group">
+              <label for="editarDependencia">Dependencia (*)</label>
+              <select class="form-control" id="editarDependencia" required>
+                <option value="">Cargando dependencias...</option>
+              </select>
+            </div>
+
+            <!-- Dirección -->
+            <div class="col-md-6 form-group">
+              <label for="editarDireccion">Dirección</label>
+              <div class="input-group">
                 <div class="input-group-prepend">
                   <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
                 </div>
-                <input type="text" class="form-control" placeholder="Dirección" id="editarDireccion" name="editarDireccion">
+                <input type="text" class="form-control" id="editarDireccion">
               </div>
+            </div>
 
-
-              <!-- input de telefono -->
-              <div class="input-group mb-3">
+            <!-- Teléfono -->
+            <div class="col-md-6 form-group">
+              <label for="editarTelefono">Teléfono</label>
+              <div class="input-group">
                 <div class="input-group-prepend">
                   <span class="input-group-text"><i class="fas fa-phone"></i></span>
                 </div>
-                <input type="text" class="form-control" placeholder="Teléfono" id="editarTelefono" name="editarTelefono">
-              </div>
-
-
-              <!-- select del rol del usuario -->
-              <div class="form-group row">
-                <label for="editarRol" class="col-sm-2 col-form-label">Rol</label>
-                <div class="col-sm-10">
-
-                  <?php
-                  $respuesta = ControladorRoles::ctrMostrarRoles();
-                  // var_dump($respuesta);
-                  echo '<select class="form-control" id="editarRol" name="editarRol">';
-                  echo '<option value="">Seleccione</option>';
-                  foreach ($respuesta as $rol) {
-                    echo '<option value="' . $rol['id_rol'] . '">' . $rol['nombre'] . '</option>';
-                  }
-                  echo '</select>';
-
-                  ?>
-                </div>
-              </div>
-
-              <!-- select de la dependencia del usuario -->
-              <div class="form-group row">
-                <label for="editarDependencia" class="col-md-3 col-form-label">Dependencia</label>
-                <div class="col-md-9">
-
-                  <?php
-                  $respuesta = ControladorDependencias::ctrMostrarDependencias();
-                  // var_dump($respuesta);
-                  echo '<select class="form-control" id="editarDependencia" name="editarDependencia">';
-                  echo '<option value="">Seleccione</option>';
-                  foreach ($respuesta as $dependencia) {
-                    echo '<option value="' . $dependencia['id_dependencia'] . '">' . $dependencia['nombre'] . '</option>';
-                  }
-                  echo '</select>';
-                  ?>
-
-
-                </div>
+                <input type="text" class="form-control" id="editarTelefono">
               </div>
             </div>
-            <div class="modal-footer justify-content-between">
-              <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
-              <button type="submit" class="btn btn-primary">Modificar</button>
-            </div>
 
-            <?php
-              ControladorUsuarios::ctrEditarUsuario();
-            ?>
-
-
-          </form>
-
+          </div>
         </div>
 
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1"></i> Actualizar Usuario</button>
+        </div>
+      </form>
 
-      </div>
-      <!-- /.modal-content -->
     </div>
-    <!-- /.modal-dialog -->
   </div>
-  <!-- /.MODAL DE NUEVO USUARIO -->
+</div>
+
+<!-- Inclusión modular del script del cliente -->
+<script src="vistas/js/usuarios.js"></script>

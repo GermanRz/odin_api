@@ -107,21 +107,6 @@ if (isset($_SESSION["iniciarSesion"]) && $_SESSION["iniciarSesion"] == "ok") {
 }
 ?>
 
-  <script src="vistas/js/usuarios.js"></script>
-
-  <script>
-    $(function() {
-      if ($("#tblUsuarios").length) {
-        $("#tblUsuarios").DataTable({
-          "responsive": true,
-          "lengthChange": false,
-          "autoWidth": false,
-          "buttons": ["excel", "pdf"]
-        }).buttons().container().appendTo('#tblUsuarios_wrapper .col-md-6:eq(0)');
-      }
-    });
-  </script>
-
 </body>
 
 </html>

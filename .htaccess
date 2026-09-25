@@ -1,4 +1,10 @@
-Options All -Indexes
+Options -Indexes
 RewriteEngine On
 
-RewriteRule ^([-a-zA-Z0-9_]+)$ index.php?ruta=$1
+# 1. Enrutamiento hacia la API RESTful
+RewriteRule ^api/(.*)$ api/index.php?ruta=$1 [QSA,L]
+
+# 2. Enrutamiento hacia el Frontend (plantilla maestra)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([-a-zA-Z0-9_/]+)$ index.php?ruta=$1 [QSA,L]
