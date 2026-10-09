@@ -146,5 +146,21 @@ if ($recurso === "estados" && $metodo === "GET") {
     RespuestaHelper::exito($catalogos["estados"], "Listado de estados obtenido correctamente");
 }
 
+if ($recurso === "series" && $metodo === "GET") {
+    $catalogos = ModeloRadicados::mdlObtenerCatalogos();
+    RespuestaHelper::exito($catalogos["series"], "Listado de series documentales obtenido correctamente");
+}
+
+if ($recurso === "subseries" && $metodo === "GET") {
+    $catalogos = ModeloRadicados::mdlObtenerCatalogos();
+    $subseries = $catalogos["subseries"];
+    if (is_numeric($param1)) {
+        $subseries = array_values(array_filter($subseries, function($s) use ($param1) {
+            return (int)$s["id_serie"] === (int)$param1;
+        }));
+    }
+    RespuestaHelper::exito($subseries, "Listado de subseries documentales obtenido correctamente");
+}
+
 // 6. Si ningún recurso coincide
 RespuestaHelper::error("Endpoint no encontrado", 404);

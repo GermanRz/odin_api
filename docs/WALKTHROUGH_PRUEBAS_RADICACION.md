@@ -3,9 +3,9 @@
 
 **Dirigido a:** Equipo de Desarrollo, QA y Aprendices de Software  
 **Entorno Tecnológico:** PHP 8.x Nativo | MySQL 8.x | API RESTful | AdminLTE 3 / Bootstrap 4 | SweetAlert2  
-**Módulo:** Radicación Documental (`UC-03`, `UC-04`, `UC-05`, `RF-05`, `RF-06`, `RF-09`, `RF-10`)  
+**Módulo:** Radicación Documental y Clasificación CCD (`UC-03`, `UC-04`, `UC-05`, `RF-05`, `RF-06`, `RF-09`, `RF-10`, `RF-23`)  
 **Fecha de Emisión:** Octubre de 2026  
-**Rama Git:** `features/radicacion`
+**Rama Git:** `fix/radicacionSeries` (derivada de `features/radicacion`)
 
 ---
 
@@ -188,6 +188,23 @@ php tests/test_radicacion_api.php
 
 ---
 
+### 4.6. Caso de Prueba 5: Clasificación Documental CCD (Series y Subseries en Cascada)
+* **Objetivo:** Verificar la carga dinámica de las Series Documentales y el filtrado en cascada de sus Subseries.
+* **Pasos:**
+  1. En la tarjeta **Clasificación Documental**, despliegue el selector **Serie documental**.
+     - *Verificación:* Deben listarse las series normalizadas: `[1.1010-42] ACTAS`, `[1.1012-27] HISTORIAS LABORALES`, `[1.1013-27] INFORMES DE GESTIÓN`, `[1.1015-27] RESOLUCIONES ADMINISTRATIVAS` y `[1.2020-27] PETICIONES, QUEJAS Y RECLAMOS (PQRSF)`.
+  2. Seleccione `[1.1012-27] HISTORIAS LABORALES`.
+  3. Despliegue el selector **Subserie documental**.
+     - *Verificación:* Solo deben aparecer las subseries hijas de esa serie:
+       - `[1.1012-27-01] Historias Laborales de Funcionarios de Planta`
+       - `[1.1012-27-02] Historias Laborales de Contratistas de Prestación de Servicios`
+       - `[1.1012-27-03] Hojas de Vida y Documentos de Selección de Personal`
+  4. Cambie la serie a `[1.1010-42] ACTAS`.
+     - *Verificación:* El selector de subseries se limpia de inmediato y ahora lista únicamente `[1.1010-42-01] Actas de Consejo Directivo` y `[1.1010-42-02] Actas de Comité Técnico y de Gerencia`.
+  5. En el panel lateral de **Resumen**, compruebe que los campos **Serie** y **Subserie** se actualizan en tiempo real con las opciones elegidas.
+
+---
+
 ## 5. Pruebas de la API RESTful (Postman / cURL / Thunder Client)
 
 Para pruebas directas sobre el Backend desacoplado:
@@ -197,7 +214,22 @@ Para pruebas directas sobre el Backend desacoplado:
 GET http://localhost/odin_api/api/radicados/catalogos
 Accept: application/json
 ```
-**Respuesta:** `200 OK` con colecciones `tramites`, `dependencias` y `estados`.
+**Respuesta:** `200 OK` con colecciones `tramites`, `dependencias`, `estados`, `series` y `subseries`.
+
+---
+
+### 5.2. Consultar Series y Subseries Dedicadas
+```http
+GET http://localhost/odin_api/api/series
+Accept: application/json
+```
+**Respuesta:** `200 OK` con el listado completo de series del CCD.
+
+```http
+GET http://localhost/odin_api/api/subseries/2
+Accept: application/json
+```
+**Respuesta:** `200 OK` con las subseries filtradas por la serie con ID 2 (`HISTORIAS LABORALES`).
 
 ---
 

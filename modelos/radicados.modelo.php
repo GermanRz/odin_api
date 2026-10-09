@@ -154,15 +154,22 @@ class ModeloRadicados
             $idDependencia = !empty($datosRadicado["id_dependencia"]) ? (int)$datosRadicado["id_dependencia"] : null;
             $idUsuario     = !empty($datosRadicado["id_usuario"]) ? (int)$datosRadicado["id_usuario"] : 1;
 
+            $codigoSerie    = !empty($datosRadicado["codigo_serie"]) ? trim($datosRadicado["codigo_serie"]) : null;
+            $codigoSubserie = !empty($datosRadicado["codigo_subserie"]) ? trim($datosRadicado["codigo_subserie"]) : null;
+            $idSerie        = !empty($datosRadicado["id_serie"]) ? (int)$datosRadicado["id_serie"] : null;
+            $idSubserie     = !empty($datosRadicado["id_subserie"]) ? (int)$datosRadicado["id_subserie"] : null;
+
             // 4. Inserción en tabla radicados
             $sqlRadicado = "INSERT INTO radicados (
                 numero_radicado, id_tramite, id_estado, id_dependencia, id_usuario,
                 id_remitente, remitente, asunto, fecha_radicado, tipo_radicado,
-                medio_recepcion, prioridad, fecha_vencimiento, confidencialidad, fecha_limite
+                medio_recepcion, prioridad, fecha_vencimiento, confidencialidad, fecha_limite,
+                codigo_serie, codigo_subserie, id_serie, id_subserie
             ) VALUES (
                 :num_rad, :tramite, :estado, :dep, :usuario,
                 :rem_id, :rem_txt, :asunto, :f_rad, :tipo,
-                :medio, :prio, :f_venc, :conf, :f_lim
+                :medio, :prio, :f_venc, :conf, :f_lim,
+                :cod_serie, :cod_subserie, :id_serie, :id_subserie
             )";
 
             $stmtRad = $db->prepare($sqlRadicado);
@@ -181,6 +188,10 @@ class ModeloRadicados
             $stmtRad->bindValue(":f_venc",  $fechaVencimiento,$fechaVencimiento ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmtRad->bindParam(":conf",    $confidencialidad,PDO::PARAM_STR);
             $stmtRad->bindValue(":f_lim",   $fechaLimite,     $fechaLimite ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmtRad->bindValue(":cod_serie",    $codigoSerie,    $codigoSerie ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmtRad->bindValue(":cod_subserie", $codigoSubserie, $codigoSubserie ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmtRad->bindValue(":id_serie",     $idSerie,        $idSerie ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            $stmtRad->bindValue(":id_subserie",  $idSubserie,     $idSubserie ? PDO::PARAM_INT : PDO::PARAM_NULL);
             $stmtRad->execute();
 
             $idRadicado = (int)$db->lastInsertId();
@@ -329,10 +340,26 @@ class ModeloRadicados
         $stmtEstados->execute();
         $estados = $stmtEstados->fetchAll(PDO::FETCH_ASSOC);
 
+        $stmtSeries = $db->prepare(
+            "SELECT id_serie, codigo_serie, nombre_serie, codigo_unidad, descripcion
+             FROM ccd_series ORDER BY codigo_serie ASC"
+        );
+        $stmtSeries->execute();
+        $series = $stmtSeries->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtSubseries = $db->prepare(
+            "SELECT id_subserie, codigo_subserie, nombre_subserie, id_serie, retencion_anios, disposicion_final
+             FROM ccd_subseries ORDER BY codigo_subserie ASC"
+        );
+        $stmtSubseries->execute();
+        $subseries = $stmtSubseries->fetchAll(PDO::FETCH_ASSOC);
+
         return [
             "tramites"     => $tramites,
             "dependencias" => $dependencias,
-            "estados"      => $estados
+            "estados"      => $estados,
+            "series"       => $series,
+            "subseries"    => $subseries
         ];
     }
 }

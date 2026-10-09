@@ -110,7 +110,26 @@ class ControladorRadicados
                 $metadatosDocumentos[] = $metaDoc;
             }
 
-            // 4. Estructurar datos para persistencia en base de datos
+            // 4. Capturar clasificación CCD (Series y Subseries)
+            $idSerie = !empty($post["serieDocumental"]) ? (int)$post["serieDocumental"] : (!empty($post["id_serie"]) ? (int)$post["id_serie"] : null);
+            $idSubserie = !empty($post["subserieDocumental"]) ? (int)$post["subserieDocumental"] : (!empty($post["id_subserie"]) ? (int)$post["id_subserie"] : null);
+            $codigoSerie = !empty($post["codigo_serie"]) ? trim($post["codigo_serie"]) : null;
+            $codigoSubserie = !empty($post["codigo_subserie"]) ? trim($post["codigo_subserie"]) : null;
+
+            if ($idSerie && !$codigoSerie) {
+                $db = Conexion::conectar();
+                $stmtS = $db->prepare("SELECT codigo_serie FROM ccd_series WHERE id_serie = :id");
+                $stmtS->execute([":id" => $idSerie]);
+                $codigoSerie = $stmtS->fetchColumn() ?: null;
+            }
+            if ($idSubserie && !$codigoSubserie) {
+                $db = Conexion::conectar();
+                $stmtSub = $db->prepare("SELECT codigo_subserie FROM ccd_subseries WHERE id_subserie = :id");
+                $stmtSub->execute([":id" => $idSubserie]);
+                $codigoSubserie = $stmtSub->fetchColumn() ?: null;
+            }
+
+            // 5. Estructurar datos para persistencia en base de datos
             $datosRadicado = [
                 "asunto"           => $asunto,
                 "tipo_radicado"    => $tipoRadicado,
@@ -123,10 +142,14 @@ class ControladorRadicados
                 "id_usuario"       => $idUsuario,
                 "fecha_limite"     => $fechaLimite,
                 "es_anonimo"       => $esAnonimo,
-                "remitente"        => $remitenteNombre
+                "remitente"        => $remitenteNombre,
+                "id_serie"         => $idSerie,
+                "id_subserie"      => $idSubserie,
+                "codigo_serie"     => $codigoSerie,
+                "codigo_subserie"  => $codigoSubserie
             ];
 
-            // 5. Persistencia atómica
+            // 6. Persistencia atómica
             $resultado = ModeloRadicados::mdlRadicarDocumento($datosRadicado, $metadatosDocumentos, $datosRemitente);
 
             RespuestaHelper::exito(

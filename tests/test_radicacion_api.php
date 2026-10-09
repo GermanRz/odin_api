@@ -47,11 +47,13 @@ class TestRadicacionApi
                     ($json["status"] ?? 0) === 200 &&
                     isset($json["data"]["tramites"]) &&
                     isset($json["data"]["dependencias"]) &&
-                    isset($json["data"]["estados"]);
+                    isset($json["data"]["estados"]) &&
+                    isset($json["data"]["series"]) &&
+                    isset($json["data"]["subseries"]);
 
         self::assert(
             $esValido,
-            "Endpoint de Catálogos retorna HTTP 200 con trámites, dependencias y estados en formato JSON estándar"
+            "Endpoint de Catálogos retorna HTTP 200 con trámites, dependencias, estados, series y subseries en formato JSON estándar"
         );
     }
 

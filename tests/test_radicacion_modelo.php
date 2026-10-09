@@ -15,6 +15,7 @@ class TestRadicacionModelo
         self::testRadicacionCompletaConDocumento();
         self::testRadicacionAnonima();
         self::testListadoYDetalle();
+        self::testCatalogosSeriesYSubseries();
 
         echo "\n";
         return ["pasadas" => self::$pasadas, "fallidas" => self::$fallidas];
@@ -163,6 +164,66 @@ class TestRadicacionModelo
             $detalle !== null && isset($detalle["documentos"]),
             "Detalle de radicado por ID (#{$ultimoId}) obtenido con arreglo de documentos"
         );
+    }
+
+    private static function testCatalogosSeriesYSubseries(): void
+    {
+        $catalogos = ModeloRadicados::mdlObtenerCatalogos();
+
+        self::assert(
+            isset($catalogos["series"]) && count($catalogos["series"]) > 0,
+            "Catálogo incluye " . count($catalogos["series"] ?? []) . " series documentales (CCD)"
+        );
+
+        self::assert(
+            isset($catalogos["subseries"]) && count($catalogos["subseries"]) > 0,
+            "Catálogo incluye " . count($catalogos["subseries"] ?? []) . " subseries documentales (CCD)"
+        );
+
+        // Validar persistencia con serie y subserie vinculadas
+        $datosRadicado = [
+            "asunto"          => "Resolución de Nombramiento - Test CCD",
+            "tipo_radicado"   => "INTERNO",
+            "medio_recepcion" => "Oficial",
+            "prioridad"       => "MEDIA",
+            "id_tramite"      => 4,
+            "id_estado"       => 1,
+            "id_dependencia"  => 1,
+            "id_usuario"      => 1,
+            "es_anonimo"      => false,
+            "remitente"       => "Despacho Dirección",
+            "id_serie"        => 4, // RESOLUCIONES ADMINISTRATIVAS
+            "codigo_serie"    => "1.1015-27",
+            "id_subserie"     => 8, // Resoluciones de Nombramiento, Traslado y Retiro
+            "codigo_subserie" => "1.1015-27-01"
+        ];
+
+        $documentos = [
+            [
+                "nombre_original" => "resolucion_001.pdf",
+                "nombre_archivo"  => "DOC_RES_001.pdf",
+                "ruta_archivo"    => "vistas/archivos/radicados/2026/10/DOC_RES_001.pdf",
+                "tipo"            => "pdf",
+                "tamano"          => 4096,
+                "mime_type"       => "application/pdf",
+                "checksum"        => hash("sha256", "res_test")
+            ]
+        ];
+
+        try {
+            $resultado = ModeloRadicados::mdlRadicarDocumento($datosRadicado, $documentos);
+            $radicadoGuardado = ModeloRadicados::mdlObtenerRadicadoPorId((int)$resultado["id_radicado"]);
+
+            self::assert(
+                $radicadoGuardado["codigo_serie"] === "1.1015-27" &&
+                $radicadoGuardado["codigo_subserie"] === "1.1015-27-01" &&
+                (int)$radicadoGuardado["id_serie"] === 4 &&
+                (int)$radicadoGuardado["id_subserie"] === 8,
+                "Radicado guardó correctamente la clasificación CCD: Serie 1.1015-27 y Subserie 1.1015-27-01"
+            );
+        } catch (Exception $e) {
+            self::assert(false, "Fallo al verificar radicación con series y subseries: " . $e->getMessage());
+        }
     }
 }
 
