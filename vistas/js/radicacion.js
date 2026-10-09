@@ -1,256 +1,422 @@
-// ====== CONFIGURACIÓN DE CARGA DE ARCHIVOS ======
-  const dropZone = document.getElementById('dropZone');
-  const fileInput = document.getElementById('fileInput');
-  const fileList = document.getElementById('fileList');
-  const totalFilesInput = document.getElementById('totalFiles');
-  const allowedFormats = ['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'image/jpeg', 'image/png'];
-  const maxFileSize = 10 * 1024 * 1024; // 10MB
-  let uploadedFiles = [];
+/**
+ * Lógica Cliente del Módulo de Radicación Documental — Proyecto ODIN
+ * 
+ * Gestiona la carga asíncrona de catálogos vía API RESTful, carga reactiva de archivos,
+ * validación de tipos MIME y tamaño, radicación anónima y notificaciones SweetAlert2.
+ */
 
-  // ====== EVENTOS DE DRAG & DROP ======
-  dropZone.addEventListener('click', () => {
-    fileInput.click();
-  });
+const API_RADICADOS_URL = "api/radicados";
+const API_CATALOGOS_URL = "api/radicados/catalogos";
+const API_USUARIOS_URL  = "api/usuarios";
 
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropZone.style.backgroundColor = '#e8f5e9';
-    dropZone.style.borderColor = '#4caf50';
-    dropZone.classList.add('shadow');
-  });
+// Formatos permitidos en cliente
+const ALLOWED_MIME_TYPES = [
+    "application/pdf",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "image/jpeg",
+    "image/png"
+];
+const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
 
-  dropZone.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropZone.style.backgroundColor = 'transparent';
-    dropZone.style.borderColor = '#ffc107';
-    dropZone.classList.remove('shadow');
-  });
+let uploadedFiles = [];
 
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropZone.style.backgroundColor = 'transparent';
-    dropZone.style.borderColor = '#ffc107';
-    dropZone.classList.remove('shadow');
-    handleFiles(e.dataTransfer.files);
-  });
+$(document).ready(function() {
+    inicializarCatalogos();
+    inicializarEventosArchivos();
+    inicializarRadicacionAnonima();
+    inicializarEventosResumen();
+    inicializarEnvioFormulario();
 
-  fileInput.addEventListener('change', (e) => {
-    handleFiles(e.target.files);
-  });
-
-  // ====== MANEJO DE ARCHIVOS ======
-  function handleFiles(files) {
-    let validFiles = [];
-    let invalidFiles = [];
-
-    for (let file of files) {
-      // Validar formato
-      if (!allowedFormats.includes(file.type)) {
-        invalidFiles.push(`${file.name} (formato no permitido)`);
-        continue;
-      }
-
-      // Validar tamaño
-      if (file.size > maxFileSize) {
-        invalidFiles.push(`${file.name} (superior a 10MB)`);
-        continue;
-      }
-
-      validFiles.push(file);
+    // Establecer fecha de hoy como valor por defecto en fechaDocumento
+    const hoy = new Date().toISOString().split("T")[0];
+    const fechaDocInput = document.getElementById("fechaDocumento");
+    if (fechaDocInput && !fechaDocInput.value) {
+        fechaDocInput.value = hoy;
     }
+});
 
-    if (invalidFiles.length > 0) {
-      let mensaje = 'Los siguientes archivos no se pueden agregar:\n\n';
-      invalidFiles.forEach(f => {
-        mensaje += '• ' + f + '\n';
-      });
-      alert(mensaje);
-    }
+/**
+ * Carga de catálogos maestros desde la API REST (trámites, dependencias, estados, usuarios)
+ */
+function inicializarCatalogos() {
+    // 1. Cargar Trámites, Dependencias y Estados
+    fetch(API_CATALOGOS_URL)
+        .then(r => r.json())
+        .then(res => {
+            if (res.success && res.data) {
+                poblarSelectTramites(res.data.tramites || []);
+                poblarSelectDependencias(res.data.dependencias || []);
+                poblarSelectEstados(res.data.estados || []);
+            }
+        })
+        .catch(err => {
+            console.error("Error al cargar catálogos maestros:", err);
+        });
 
-    if (validFiles.length > 0) {
-      uploadedFiles = validFiles;
-      displayFiles(validFiles);
-      totalFilesInput.value = validFiles.length;
-      updateSummary();
-    }
-  }
+    // 2. Cargar Usuarios para Asignación Inicial
+    fetch(API_USUARIOS_URL)
+        .then(r => r.json())
+        .then(res => {
+            if (res.success && Array.isArray(res.data)) {
+                const $selectResp = $("#responsable");
+                $selectResp.empty().append('<option value="">Seleccione un responsable...</option>');
+                res.data.forEach(u => {
+                    $selectResp.append(`<option value="${u.id_usuario}">${u.nombre} (${u.rol || 'Funcionario'})</option>`);
+                });
+            }
+        })
+        .catch(err => {
+            console.error("Error al cargar usuarios:", err);
+        });
+}
 
-  function displayFiles(files) {
-    fileList.innerHTML = '';
-
-    if (files.length === 0) {
-      fileList.innerHTML = '<p class="text-muted text-center"><i class="fas fa-inbox mr-2"></i>Ningún archivo seleccionado</p>';
-      return;
-    }
-
-    let html = '<div class="alert alert-success mb-3"><strong><i class="fas fa-check-circle mr-2"></i>' + files.length + ' archivo(s) seleccionado(s)</strong></div>';
-
-    files.forEach((file, index) => {
-      const fileSize = (file.size / 1024).toFixed(2);
-      const fileIcon = getFileIcon(file.type);
-      const fileNameTruncated = file.name.length > 30 ? file.name.substring(0, 27) + '...' : file.name;
-
-      html += `
-      <div class="alert alert-light border border-left-success mb-2 d-flex justify-content-between align-items-center">
-        <div class="flex-grow-1">
-          <div>
-            <i class="fas ${fileIcon} mr-2 text-success"></i>
-            <strong title="${file.name}">${fileNameTruncated}</strong>
-          </div>
-          <small class="text-muted d-block ml-4">${fileSize} KB</small>
-        </div>
-        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile(${index})">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-    `;
+function poblarSelectTramites(tramites) {
+    const $select = $("#tramite");
+    $select.empty().append('<option value="">Seleccione un trámite...</option>');
+    tramites.forEach(t => {
+        $select.append(`<option value="${t.id_tramite}" data-dias="${t.dias_respuesta || 15}" data-prio="${t.prioridad_default || 'MEDIA'}">${t.nombre}</option>`);
     });
 
-    fileList.innerHTML += html;
-  }
+    $select.on("change", function() {
+        const selectedOpt = $(this).find("option:selected");
+        const prioridadDef = selectedOpt.data("prio");
+        if (prioridadDef) {
+            $("#prioridad").val(prioridadDef.toLowerCase()).trigger("change");
+        }
+    });
+}
 
-  function getFileIcon(fileType) {
-    const icons = {
-      'application/pdf': 'fa-file-pdf',
-      'application/vnd.ms-excel': 'fa-file-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'fa-file-excel',
-      'image/jpeg': 'fa-file-image',
-      'image/png': 'fa-file-image'
-    };
-    return icons[fileType] || 'fa-file';
-  }
+function poblarSelectDependencias(dependencias) {
+    const $dest = $("#dependenciaDestino");
+    const $resp = $("#dependenciaResponsable");
 
-  function removeFile(index) {
-    uploadedFiles.splice(index, 1);
-    totalFilesInput.value = uploadedFiles.length;
+    $dest.empty().append('<option value="">Seleccione una dependencia...</option>');
+    $resp.empty().append('<option value="">Seleccione una dependencia...</option>');
 
-    // Actualizar el input file
-    const dt = new DataTransfer();
-    uploadedFiles.forEach(file => dt.items.add(file));
-    fileInput.files = dt.files;
+    dependencias.forEach(d => {
+        const optionHtml = `<option value="${d.id_dependencia}">[${d.codigo || 'DEP'}] ${d.nombre}</option>`;
+        $dest.append(optionHtml);
+        $resp.append(optionHtml);
+    });
+}
 
-    displayFiles(uploadedFiles);
-    updateSummary();
-  }
+function poblarSelectEstados(estados) {
+    const $select = $("#estadoInicial");
+    $select.empty().append('<option value="">Seleccione un estado...</option>');
+    estados.forEach(e => {
+        const isPendiente = e.nombre.toLowerCase().includes("pendiente");
+        $select.append(`<option value="${e.id_estado}" ${isPendiente ? 'selected' : ''}>${e.nombre}</option>`);
+    });
+}
 
-  // ====== VALIDACIÓN DEL FORMULARIO ======
-  function validarFormulario(e) {
-    const form = document.getElementById('formRadicacion');
-    if (!form) return false;
+/**
+ * Gestión interactiva de arrastrar y soltar (Drag & Drop) y selección de archivos
+ */
+function inicializarEventosArchivos() {
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
 
-    if (form.checkValidity() === false) {
-      if (e) {
+    if (!dropZone || !fileInput) return;
+
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    dropZone.addEventListener("dragover", (e) => {
         e.preventDefault();
         e.stopPropagation();
-      }
-      form.classList.add('was-validated');
-      return false;
-    }
-
-    form.classList.add('was-validated');
-    return true;
-  }
-
-  // ====== ACTUALIZACIÓN DE RESUMEN EN TIEMPO REAL ======
-  function updateSummary() {
-    const nombreSolicitante = document.getElementById('numeroDocumento').value + ' - ' + document.getElementById('nombreSolicitante').value;
-    const dependencia = document.querySelector('#dependenciaDestino option:checked').text;
-    const serie = document.querySelector('#serieDocumental option:checked').text;
-    const subserie = document.querySelector('#subserieDocumental option:checked').text;
-    const asunto = document.getElementById('asuntoDocumento').value;
-    const adjuntos = totalFilesInput.value;
-    const prioridad = document.querySelector('#prioridad option:checked').text;
-    const fechaLimite = document.getElementById('fechaLimite').value;
-
-    // Actualizar resumen
-    document.querySelector('.resumen-solicitante').textContent = nombreSolicitante && nombreSolicitante !== ' - ' ? nombreSolicitante : '—';
-    document.querySelector('.resumen-dependencia').textContent = dependencia !== 'Seleccione una dependencia...' ? dependencia : '—';
-    document.querySelector('.resumen-serie').textContent = serie !== 'Seleccione una serie...' ? serie : '—';
-    document.querySelector('.resumen-subserie').textContent = subserie !== 'Seleccione una subserie...' ? subserie : '—';
-    document.querySelector('.resumen-asunto').textContent = asunto || '—';
-    document.querySelector('.resumen-adjuntos').textContent = adjuntos;
-    document.querySelector('.resumen-prioridad').textContent = prioridad !== 'Seleccione...' ? prioridad : '—';
-    document.querySelector('.resumen-fechaLimite').textContent = fechaLimite || '—';
-  }
-
-  // ====== LIMPIAR FORMULARIO ======
-  function limpiarFormulario() {
-    if (confirm('¿Desea limpiar todos los datos del formulario?')) {
-      document.getElementById('formRadicacion').reset();
-      document.getElementById('formRadicacion').classList.remove('was-validated');
-      uploadedFiles = [];
-      totalFilesInput.value = 0;
-      fileList.innerHTML = '<p class="text-muted text-center"><i class="fas fa-inbox mr-2"></i>Ningún archivo seleccionado</p>';
-      updateSummary();
-    }
-  }
-
-  // ====== ENVÍO DEL FORMULARIO ======
-  const formRadicacion = document.getElementById('formRadicacion');
-  if (formRadicacion) {
-    formRadicacion.addEventListener('submit', function(e) {
-      e.preventDefault();
-
-      if (!validarFormulario(e)) {
-        Swal.fire('Error', 'Por favor, complete todos los campos requeridos', 'error');
-        return;
-      }
-
-    const btnRadicar = document.getElementById('btnRadicar');
-    const textoOriginal = btnRadicar.innerHTML;
-    btnRadicar.disabled = true;
-    btnRadicar.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Procesando...';
-
-    // Aquí se enviaría el formulario al servidor
-    console.log('Formulario válido. Enviando datos...');
-
-    // Simular envío (reemplazar con AJAX real)
-    setTimeout(() => {
-      btnRadicar.disabled = false;
-      btnRadicar.innerHTML = textoOriginal;
-      Swal.fire('Éxito', 'Radicación realizada correctamente', 'success');
-      document.getElementById('formRadicacion').reset();
-    }, 2000);
-  });
-
-  // ====== INICIALIZACIÓN ======
-  document.addEventListener('DOMContentLoaded', function() {
-    // Agregar listeners a los campos para actualizar el resumen
-    const camposResumen = ['numeroDocumento', 'nombreSolicitante', 'dependenciaDestino', 'serieDocumental', 'subserieDocumental', 'asuntoDocumento', 'prioridad', 'fechaLimite'];
-
-    camposResumen.forEach(id => {
-      const elemento = document.getElementById(id);
-      if (elemento) {
-        elemento.addEventListener('change', updateSummary);
-        elemento.addEventListener('keyup', updateSummary);
-      }
+        dropZone.style.backgroundColor = "#e8f5e9";
+        dropZone.style.borderColor = "#28a745";
     });
 
-    // Establecer fecha mínima como hoy
-    const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('fechaDocumento').setAttribute('min', hoy);
-    document.getElementById('fechaLimite').setAttribute('min', hoy);
+    dropZone.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.style.backgroundColor = "transparent";
+        dropZone.style.borderColor = "#ffc107";
+    });
 
-    // Cargar datos iniciales del resumen
-    updateSummary();
-  });
+    dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.style.backgroundColor = "transparent";
+        dropZone.style.borderColor = "#ffc107";
+        agregarArchivos(e.dataTransfer.files);
+    });
 
-  // ====== CLASE PARA VALIDACIÓN ======
-  (function() {
-    'use strict';
-    window.addEventListener('load', function() {
-      const forms = document.getElementsByClassName('needs-validation');
-      let validation = Array.prototype.filter.call(forms, function(form) {
-        form.addEventListener('submit', function(event) {
-          if (form.checkValidity() === false) {
-            event.preventDefault();
-            event.stopPropagation();
-          }
-          form.classList.add('was-validated');
-        }, false);
-      });
-    }, false);
-  })();
+    fileInput.addEventListener("change", (e) => {
+        agregarArchivos(e.target.files);
+        fileInput.value = ""; // Permitir volver a seleccionar el mismo archivo si fue eliminado
+    });
+}
+
+function agregarArchivos(archivosFileList) {
+    const rechazados = [];
+
+    for (let i = 0; i < archivosFileList.length; i++) {
+        const file = archivosFileList[i];
+
+        // Validar tipo MIME
+        if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+            rechazados.push(`${file.name}: Formato no permitido. Solo PDF, Excel (XLSX, XLS), JPG y PNG.`);
+            continue;
+        }
+
+        // Validar peso máximo
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            rechazados.push(`${file.name}: Supera el límite de 15MB.`);
+            continue;
+        }
+
+        // Evitar duplicados por nombre y tamaño
+        const yaExiste = uploadedFiles.some(f => f.name === file.name && f.size === file.size);
+        if (!yaExiste) {
+            uploadedFiles.push(file);
+        }
+    }
+
+    if (rechazados.length > 0) {
+        Swal.fire({
+            icon: "warning",
+            title: "Archivos no admitidos",
+            html: '<ul class="text-left">' + rechazados.map(r => `<li>${r}</li>`).join('') + '</ul>'
+        });
+    }
+
+    renderizarListaArchivos();
+    actualizarResumen();
+}
+
+function eliminarArchivo(index) {
+    uploadedFiles.splice(index, 1);
+    renderizarListaArchivos();
+    actualizarResumen();
+}
+
+function renderizarListaArchivos() {
+    const $container = $("#fileList");
+    const $totalFiles = $("#totalFiles");
+    $totalFiles.val(uploadedFiles.length);
+
+    if (uploadedFiles.length === 0) {
+        $container.html('<p class="text-muted text-center"><i class="fas fa-inbox mr-2"></i>Ningún archivo adjuntado</p>');
+        return;
+    }
+
+    let html = `
+    <div class="alert alert-success py-2 mb-2">
+        <i class="fas fa-check-circle mr-1"></i><strong>${uploadedFiles.length}</strong> archivo(s) listo(s) para radicar
+    </div>`;
+
+    uploadedFiles.forEach((file, idx) => {
+        const tamanoKB = (file.size / 1024).toFixed(1);
+        const iconClass = obtenerIconoPorMime(file.type);
+
+        html += `
+        <div class="alert alert-light border border-left-success py-2 px-3 mb-2 d-flex justify-content-between align-items-center">
+            <div class="text-truncate mr-2">
+                <i class="fas ${iconClass} mr-2 text-success"></i>
+                <strong>${file.name}</strong>
+                <span class="text-muted small ml-2">(${tamanoKB} KB)</span>
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-xs" onclick="eliminarArchivo(${idx})" title="Quitar archivo">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>`;
+    });
+
+    $container.html(html);
+}
+
+function obtenerIconoPorMime(mime) {
+    if (mime === "application/pdf") return "fa-file-pdf text-danger";
+    if (mime.includes("excel") || mime.includes("spreadsheet")) return "fa-file-excel text-success";
+    if (mime.startsWith("image/")) return "fa-file-image text-info";
+    return "fa-file-alt text-secondary";
+}
+
+/**
+ * Control del Switch de Radicación Anónima (Ley de Transparencia RF-09)
+ */
+function inicializarRadicacionAnonima() {
+    $("#radicacionAnonima").on("change", function() {
+        const esAnonimo = $(this).is(":checked");
+        const campos = [
+            "#tipoDocumento",
+            "#numeroDocumento",
+            "#nombreSolicitante",
+            "#correoSolicitante",
+            "#telefonoSolicitante",
+            "#ciudadSolicitante"
+        ];
+
+        if (esAnonimo) {
+            campos.forEach(c => {
+                const $c = $(c);
+                $c.val("");
+                $c.prop("disabled", true);
+                $c.removeAttr("required");
+                $c.removeClass("is-invalid is-valid");
+            });
+            $("#seccionDatosSolicitante").addClass("bg-light text-muted");
+            $(".resumen-solicitante").html('<span class="badge badge-warning"><i class="fas fa-user-secret mr-1"></i>ANÓNIMO (Ley de Transparencia)</span>');
+        } else {
+            campos.forEach(c => {
+                const $c = $(c);
+                $c.prop("disabled", false);
+            });
+            $("#tipoDocumento, #numeroDocumento, #nombreSolicitante").attr("required", "required");
+            $("#seccionDatosSolicitante").removeClass("bg-light text-muted");
+            actualizarResumen();
+        }
+    });
+}
+
+/**
+ * Actualización reactiva del panel lateral de Resumen
+ */
+function inicializarEventosResumen() {
+    const campos = [
+        "#numeroDocumento",
+        "#nombreSolicitante",
+        "#dependenciaDestino",
+        "#asuntoDocumento",
+        "#prioridad",
+        "#fechaLimite"
+    ];
+
+    $(campos.join(",")).on("change keyup", actualizarResumen);
+}
+
+function actualizarResumen() {
+    const esAnonimo = $("#radicacionAnonima").is(":checked");
+    if (esAnonimo) {
+        $(".resumen-solicitante").html('<span class="badge badge-warning"><i class="fas fa-user-secret mr-1"></i>ANÓNIMO (Ley de Transparencia)</span>');
+    } else {
+        const num = $("#numeroDocumento").val().trim();
+        const nom = $("#nombreSolicitante").val().trim();
+        const solTexto = (num || nom) ? `${num} - ${nom}` : "—";
+        $(".resumen-solicitante").text(solTexto);
+    }
+
+    const depText = $("#dependenciaDestino option:selected").text();
+    $(".resumen-dependencia").text(depText && !depText.includes("Seleccione") ? depText : "—");
+
+    const asunto = $("#asuntoDocumento").val().trim();
+    $(".resumen-asunto").text(asunto || "—");
+
+    $(".resumen-adjuntos").text(uploadedFiles.length);
+
+    const prio = $("#prioridad option:selected").text();
+    $(".resumen-prioridad").text(prio && !prio.includes("Seleccione") ? prio : "—");
+
+    const fechaLim = $("#fechaLimite").val();
+    $(".resumen-fechaLimite").text(fechaLim || "—");
+}
+
+/**
+ * Limpieza integral del formulario
+ */
+function limpiarFormulario() {
+    $("#formRadicacion")[0].reset();
+    $("#formRadicacion").removeClass("was-validated");
+    uploadedFiles = [];
+    renderizarListaArchivos();
+    $("#radicacionAnonima").prop("checked", false).trigger("change");
+    actualizarResumen();
+}
+
+/**
+ * Intercepción y envío del formulario a la API RESTful
+ */
+function inicializarEnvioFormulario() {
+    const form = document.getElementById("formRadicacion");
+    if (!form) return;
+
+    form.addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        // 1. Validar presencia de adjuntos obligatorios
+        if (uploadedFiles.length === 0) {
+            Swal.fire({
+                icon: "warning",
+                title: "Documento adjunto requerido",
+                text: "Debe adjuntar al menos un archivo digital (PDF, Excel o imagen) para completar el proceso de radicación."
+            });
+            return;
+        }
+
+        // 2. Validación de HTML5
+        if (!form.checkValidity()) {
+            e.stopPropagation();
+            form.classList.add("was-validated");
+            Swal.fire({
+                icon: "error",
+                title: "Campos incompletos",
+                text: "Por favor complete todos los campos obligatorios marcados con asterisco (*)."
+            });
+            return;
+        }
+
+        // 3. Preparar FormData para envío multipart
+        const formData = new FormData(form);
+
+        // Adjuntar los archivos del array uploadedFiles
+        formData.delete("adjuntos[]");
+        uploadedFiles.forEach(file => {
+            formData.append("adjuntos[]", file);
+        });
+
+        // 4. Bloquear botón de envío con spinner
+        const $btn = $("#btnRadicar");
+        const btnHtmlOriginal = $btn.html();
+        $btn.prop("disabled", true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Radicando documento...');
+
+        // 5. Envío Asíncrono a la API RESTful
+        fetch(API_RADICADOS_URL, {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(({ status, body }) => {
+            if (status === 201 && body.success) {
+                const rad = body.data;
+                const totalDocs = rad.documentos ? rad.documentos.length : 1;
+
+                Swal.fire({
+                    icon: "success",
+                    title: "¡Radicación Exitosa!",
+                    html: `
+                        <div class="text-center my-3">
+                            <span class="text-muted">Número oficial asignado:</span>
+                            <h2 class="text-success font-weight-bold mt-1 mb-2">${rad.numero_radicado}</h2>
+                            <p class="mb-1"><strong>Fecha de radicado:</strong> ${rad.fecha_radicado}</p>
+                            <p class="mb-1"><strong>Tipo:</strong> <span class="badge badge-info">${rad.tipo_radicado}</span></p>
+                            <p class="mb-0"><strong>Documentos almacenados:</strong> ${totalDocs}</p>
+                        </div>
+                    `,
+                    confirmButtonText: '<i class="fas fa-check mr-1"></i> Aceptar',
+                    confirmButtonColor: "#28a745"
+                });
+
+                limpiarFormulario();
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error al radicar",
+                    text: body.message || "No fue posible procesar la radicación del documento."
+                });
+            }
+        })
+        .catch(err => {
+            console.error("Fallo de conexión:", err);
+            Swal.fire({
+                icon: "error",
+                title: "Error de conexión",
+                text: "No fue posible establecer comunicación con el servidor. Verifique su red e intente nuevamente."
+            });
+        })
+        .finally(() => {
+            $btn.prop("disabled", false).html(btnHtmlOriginal);
+        });
+    });
+}

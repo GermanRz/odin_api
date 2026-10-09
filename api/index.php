@@ -16,6 +16,8 @@ require_once __DIR__ . "/../modelos/dependencias.modelo.php";
 require_once __DIR__ . "/../controladores/usuarios.controlador.php";
 require_once __DIR__ . "/../controladores/roles.controlador.php";
 require_once __DIR__ . "/../controladores/dependencias.controlador.php";
+require_once __DIR__ . "/../modelos/radicados.modelo.php";
+require_once __DIR__ . "/../controladores/radicados.controlador.php";
 
 // 2. Cabeceras CORS y configuración HTTP
 header("Content-Type: application/json; charset=UTF-8");
@@ -93,7 +95,36 @@ if ($recurso === "usuarios") {
 }
 
 /*=============================================
-RECURSOS AUXILIARES: ROLES Y DEPENDENCIAS
+RECURSO: RADICADOS (/api/radicados)
+=============================================*/
+if ($recurso === "radicados") {
+
+    // GET /api/radicados/catalogos -> Listas desplegables
+    if ($metodo === "GET" && $param1 === "catalogos") {
+        ControladorRadicados::ctrCatalogos();
+    }
+
+    // GET /api/radicados -> Listado general
+    if ($metodo === "GET" && $param1 === null) {
+        ControladorRadicados::ctrListar();
+    }
+
+    // GET /api/radicados/{id} -> Detalle de radicado con documentos
+    if ($metodo === "GET" && is_numeric($param1)) {
+        ControladorRadicados::ctrObtener((int)$param1);
+    }
+
+    // POST /api/radicados -> Radicar documento con adjuntos
+    if ($metodo === "POST" && $param1 === null) {
+        $payload = !empty($_POST) ? $_POST : $body;
+        ControladorRadicados::ctrRadicar($payload, $_FILES);
+    }
+
+    RespuestaHelper::error("Método no permitido para este recurso", 405);
+}
+
+/*=============================================
+RECURSOS AUXILIARES: ROLES, DEPENDENCIAS, TRAMITES, ESTADOS
 =============================================*/
 if ($recurso === "roles" && $metodo === "GET") {
     $roles = ModeloRoles::mdlMostrarRoles("roles");
@@ -103,6 +134,16 @@ if ($recurso === "roles" && $metodo === "GET") {
 if ($recurso === "dependencias" && $metodo === "GET") {
     $dependencias = ModeloDependencias::mdlMostrarDependencias("dependencias");
     RespuestaHelper::exito($dependencias, "Listado de dependencias obtenido correctamente");
+}
+
+if ($recurso === "tramites" && $metodo === "GET") {
+    $catalogos = ModeloRadicados::mdlObtenerCatalogos();
+    RespuestaHelper::exito($catalogos["tramites"], "Listado de trámites obtenido correctamente");
+}
+
+if ($recurso === "estados" && $metodo === "GET") {
+    $catalogos = ModeloRadicados::mdlObtenerCatalogos();
+    RespuestaHelper::exito($catalogos["estados"], "Listado de estados obtenido correctamente");
 }
 
 // 6. Si ningún recurso coincide

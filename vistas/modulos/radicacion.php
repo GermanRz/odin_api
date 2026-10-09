@@ -91,10 +91,18 @@
 
           <!-- Card: Datos del Solicitante -->
           <div class="card card-outline card-success">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
               <h3 class="card-title"><i class="fas fa-user mr-1"></i>Datos del Solicitante</h3>
+              <div class="card-tools ml-auto">
+                <div class="custom-control custom-switch">
+                  <input type="checkbox" class="custom-control-input" id="radicacionAnonima" name="radicacionAnonima" value="1">
+                  <label class="custom-control-label font-weight-normal text-muted" for="radicacionAnonima">
+                    <i class="fas fa-user-secret mr-1"></i>Radicación anónima (Ley de Transparencia - RF-09)
+                  </label>
+                </div>
+              </div>
             </div>
-            <div class="card-body">
+            <div class="card-body" id="seccionDatosSolicitante">
               <div class="row">
                 <div class="col-md-6 form-group">
                   <label for="tipoDocumento"><i class="fas fa-id-card mr-1"></i>Tipo de documento <span class="text-danger">*</span></label>
@@ -462,3 +470,6 @@
     </form>
   </div>
 </section>
+
+<!-- Vinculación del script del módulo -->
+<script src="vistas/js/radicacion.js"></script>

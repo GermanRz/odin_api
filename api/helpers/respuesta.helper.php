@@ -18,8 +18,10 @@ class RespuestaHelper {
      * @return void
      */
     public static function exito($data = [], string $mensaje = "Operación exitosa", int $codigo = 200): void {
-        http_response_code($codigo);
-        header("Content-Type: application/json; charset=UTF-8");
+        if (!headers_sent()) {
+            http_response_code($codigo);
+            header("Content-Type: application/json; charset=UTF-8");
+        }
         echo json_encode([
             "status"  => $codigo,
             "success" => true,
@@ -38,8 +40,10 @@ class RespuestaHelper {
      * @return void
      */
     public static function error(string $mensaje = "Error en la petición", int $codigo = 400, array $errores = []): void {
-        http_response_code($codigo);
-        header("Content-Type: application/json; charset=UTF-8");
+        if (!headers_sent()) {
+            http_response_code($codigo);
+            header("Content-Type: application/json; charset=UTF-8");
+        }
         $payload = [
             "status"  => $codigo,
             "success" => false,

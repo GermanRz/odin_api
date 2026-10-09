@@ -85,3 +85,4 @@ temp/
 # ------------------------------------------------------------------------------
 vistas/archivos/*
 !vistas/archivos/.gitkeep
+!vistas/archivos/.htaccess
