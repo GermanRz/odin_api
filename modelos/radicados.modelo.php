@@ -257,25 +257,84 @@ class ModeloRadicados
     }
 
     /**
-     * Consulta el listado de radicados con detalles relacionados para DataTables.
+     * Consulta el listado de radicados con detalles relacionados para DataTables y seguimiento.
+     * Si el usuario es Administrador o no se especifica usuario, retorna todos los radicados.
+     * Si es un usuario regular, filtra exclusivamente los radicados asociados a su id_usuario.
+     * 
+     * @param int|null $idUsuario Identificador del usuario en sesión.
+     * @param bool $esAdmin Bandera de rol administrador (true = ve todos los radicados).
+     * @param array $filtros Filtros adicionales opcionales (id_estado, tipo_radicado, fecha).
+     * @return array Listado de radicados con relaciones.
      */
-    public static function mdlListarRadicados(): array
+    public static function mdlListarRadicados(?int $idUsuario = null, bool $esAdmin = false, array $filtros = []): array
     {
-        $stmt = Conexion::conectar()->prepare(
-            "SELECT r.id_radicado, r.numero_radicado, r.remitente, r.asunto,
-                    r.tipo_radicado, r.prioridad, r.fecha_radicado,
-                    e.nombre AS estado, e.color AS estado_color,
-                    d.nombre AS dependencia,
-                    t.nombre AS tramite,
-                    (SELECT COUNT(*) FROM documentos d2 WHERE d2.id_radicado = r.id_radicado) AS total_documentos
-             FROM radicados r
-             LEFT JOIN estados e ON e.id_estado = r.id_estado
-             LEFT JOIN dependencias d ON d.id_dependencia = r.id_dependencia
-             LEFT JOIN tramites t ON t.id_tramite = r.id_tramite
-             ORDER BY r.id_radicado DESC"
-        );
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $db = Conexion::conectar();
+            $sql = "SELECT r.id_radicado, r.numero_radicado, r.remitente, r.asunto,
+                           r.tipo_radicado, r.prioridad, r.confidencialidad, r.medio_recepcion,
+                           r.fecha_radicado, r.fecha_limite, r.fecha_vencimiento,
+                           r.id_usuario,
+                           COALESCE(u.nombre, 'Sin asignar') AS responsable,
+                           u.correo AS responsable_correo,
+                           e.id_estado,
+                           COALESCE(e.nombre, 'Sin estado') AS estado,
+                           COALESCE(e.color, '#6c757d') AS estado_color,
+                           d.id_dependencia,
+                           d.nombre AS dependencia,
+                           t.id_tramite,
+                           t.nombre AS tramite,
+                           (SELECT COUNT(*) FROM documentos d2 WHERE d2.id_radicado = r.id_radicado) AS total_documentos,
+                           (SELECT d3.ruta_archivo FROM documentos d3 WHERE d3.id_radicado = r.id_radicado ORDER BY d3.id_documento ASC LIMIT 1) AS ruta_documento,
+                           (SELECT d3.nombre_archivo FROM documentos d3 WHERE d3.id_radicado = r.id_radicado ORDER BY d3.id_documento ASC LIMIT 1) AS nombre_archivo,
+                           (SELECT d3.id_documento FROM documentos d3 WHERE d3.id_radicado = r.id_radicado ORDER BY d3.id_documento ASC LIMIT 1) AS id_documento
+                    FROM radicados r
+                    LEFT JOIN usuarios u ON u.id_usuario = r.id_usuario
+                    LEFT JOIN estados e ON e.id_estado = r.id_estado
+                    LEFT JOIN dependencias d ON d.id_dependencia = r.id_dependencia
+                    LEFT JOIN tramites t ON t.id_tramite = r.id_tramite";
+
+            $condiciones = [];
+            $params = [];
+
+            // Regla de negocio: Si NO es administrador y se cuenta con idUsuario, filtrar por dicho usuario
+            if (!$esAdmin && $idUsuario !== null) {
+                $condiciones[] = "r.id_usuario = :id_usuario";
+                $params[":id_usuario"] = ["valor" => $idUsuario, "tipo" => PDO::PARAM_INT];
+            }
+
+            // Filtros complementarios opcionales
+            if (!empty($filtros["id_estado"])) {
+                $condiciones[] = "r.id_estado = :id_estado";
+                $params[":id_estado"] = ["valor" => (int)$filtros["id_estado"], "tipo" => PDO::PARAM_INT];
+            }
+
+            if (!empty($filtros["tipo_radicado"])) {
+                $condiciones[] = "r.tipo_radicado = :tipo_radicado";
+                $params[":tipo_radicado"] = ["valor" => trim($filtros["tipo_radicado"]), "tipo" => PDO::PARAM_STR];
+            }
+
+            if (!empty($filtros["fecha"])) {
+                $condiciones[] = "DATE(r.fecha_radicado) = :fecha";
+                $params[":fecha"] = ["valor" => trim($filtros["fecha"]), "tipo" => PDO::PARAM_STR];
+            }
+
+            if (!empty($condiciones)) {
+                $sql .= " WHERE " . implode(" AND ", $condiciones);
+            }
+
+            $sql .= " ORDER BY r.id_radicado DESC";
+
+            $stmt = $db->prepare($sql);
+            foreach ($params as $paramClave => $paramItem) {
+                $stmt->bindValue($paramClave, $paramItem["valor"], $paramItem["tipo"]);
+            }
+
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error en ModeloRadicados::mdlListarRadicados: " . $e->getMessage());
+            return [];
+        }
     }
 
     /**

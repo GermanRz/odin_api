@@ -7,6 +7,10 @@
  * y despacho desacoplado hacia los controladores del sistema.
  */
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // 1. Clases auxiliares y dependencias
 require_once __DIR__ . "/helpers/respuesta.helper.php";
 require_once __DIR__ . "/../modelos/conexion.php";

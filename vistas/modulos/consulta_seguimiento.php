@@ -18,109 +18,72 @@
 
 <!-- Main content -->
 <section class="content">
-  <div class="input-group input-group-lg">
-    <span class="input-group-text bg-body">
-      <i class="bi bi-search" aria-hidden="true"></i>
-    </span>
-    <input type="search" class="form-control" placeholder="Buscar Radicado, Asunto o Responsable" aria-label="Search the FAQ">
-  </div>
-
-  <div class="card-body">
-    <!--begin::Row-->
-    <div class="row">
-      <!--begin::Col-->
-      <div class="col-md-4">
-        <select id="filtroTipoDocumento" class="form-control form-select-lg">
-          <option value="">Tipo de documento</option>
-          <option value="CC">Cédula de ciudadanía</option>
-          <option value="CE">Cédula de extranjería</option>
-          <option value="TI">Tarjeta de identidad</option>
-        </select>
-      </div>
-      <!--end::Col-->
-      <!--begin::Col-->
-      <div class="col-md-4">
-        <select id="filtroEstado" class="form-control form-select-lg">
-          <option value="">Todos los estados</option>
-          <option value="En tramite">En trámite</option>
-          <option value="Pendiente">Pendiente</option>
-          <option value="Finalizado">Finalizado</option>
-        </select>
-      </div>
-      <div class="col-md-4">
-        <input
-          type="date"
-          id="fecha"
-          class="form-control">
+  <div class="container-fluid">
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-search-location mr-1"></i> Listado y Seguimiento de Radicados
+        </h3>
       </div>
 
-      <!--end::Row-->
-    </div>
-    <div class="card-body p-0">
-      <table class="table table-striped projects">
-        <thead>
-          <tr>
-            <th style="width: 15%;">Acciones</th>
-            <th>Radicado</th>
-            <th>Tipo Documento</th>
-            <th>Fecha Registro</th>
-            <th>Estado</th>
-            <th>Responsable</th>
-          </tr>
-        </thead>
+      <div class="card-body">
+        <!-- Buscador principal -->
+        <div class="input-group input-group-lg mb-3">
+          <div class="input-group-prepend">
+            <span class="input-group-text bg-white">
+              <i class="fas fa-search" aria-hidden="true"></i>
+            </span>
+          </div>
+          <input type="search" id="inputBuscarRadicado" class="form-control" placeholder="Buscar por número de radicado, asunto, remitente o responsable...">
+        </div>
 
-        <tbody>
-          <tr>
-            <!-- Acciones -->
-            <td>
-              <a class="btn btn-primary btn-sm mb-1" href="#">
-                <i class="fas fa-download"></i>
-                Descargar
-              </a>
-              <br>
-              <a class="btn btn-info btn-sm" href="#">
-                <i class="far fa-eye"></i>
-                Visualizar
-              </a>
-            </td>
+        <!-- Filtros complementarios -->
+        <div class="row mb-3">
+          <div class="col-md-4 mb-2">
+            <label for="filtroTipoDocumento" class="small text-muted font-weight-bold">Tipo de radicación:</label>
+            <select id="filtroTipoDocumento" class="form-control">
+              <option value="">Todos los tipos</option>
+              <option value="ENTRADA">Entrada</option>
+              <option value="SALIDA">Salida</option>
+              <option value="INTERNO">Interno</option>
+            </select>
+          </div>
 
-            <!-- Radicado -->
-            <td>2023-ABC-001</td>
+          <div class="col-md-4 mb-2">
+            <label for="filtroEstado" class="small text-muted font-weight-bold">Estado del trámite:</label>
+            <select id="filtroEstado" class="form-control">
+              <option value="">Todos los estados</option>
+            </select>
+          </div>
 
-            <!-- Tipo Documento -->
-            <td>Oficio de Comisión</td>
+          <div class="col-md-4 mb-2">
+            <label for="fecha" class="small text-muted font-weight-bold">Fecha de radicación:</label>
+            <input type="date" id="fecha" class="form-control">
+          </div>
+        </div>
 
-            <!-- Fecha -->
-            <td>12/03/2024</td>
-
-            <!-- Estado -->
-            <td>
-              <span class="badge bg-primary">En Trámite</span>
-            </td>
-            <td>Lucía Gómez</td>
-          </tr>
-          <tr>
-            <td>
-              <a class="btn btn-primary btn-sm mb-1" href="#">
-                <i class="fas fa-download"></i>
-                Descargar
-              </a>
-              <br>
-              <a class="btn btn-info btn-sm" href="#">
-                <i class="far fa-eye"></i>
-                Visualizar
-              </a>
-            </td>
-            <td>2023-ABC-002</td>
-            <td>Resolución</td>
-            <td>15/03/2024</td>
-            <td>
-              <span class="badge bg-success">Finalizado</span>
-            </td>
-            <td>Carlos Pérez</td>
-          </tr>
-        </tbody>
-      </table>
+        <!-- Tabla DataTables AJAX -->
+        <div class="table-responsive">
+          <table id="tblConsultaSeguimiento" class="table table-bordered table-striped dt-responsive nowrap" style="width: 100%;">
+            <thead>
+              <tr>
+                <th style="width: 12%;">Acciones</th>
+                <th>Radicado</th>
+                <th>Tipo Documento</th>
+                <th>Fecha Registro</th>
+                <th>Estado</th>
+                <th>Responsable</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Renderizado dinámico vía DataTables AJAX desde api/radicados -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </section>
+
+<!-- Script de interacción cliente y consumo RESTful -->
+<script src="vistas/js/consulta_seguimiento.js"></script>

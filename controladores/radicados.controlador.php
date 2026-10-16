@@ -170,12 +170,61 @@ class ControladorRadicados
     }
 
     /**
-     * Consulta y retorna el listado de radicados registrados.
+     * Consulta y retorna el listado de radicados registrados según el perfil del usuario autenticado.
+     * - Si el usuario es Administrador, visualiza todos los radicados de la entidad.
+     * - Si es un usuario regular, visualiza exclusivamente los radicados bajo su responsabilidad.
      */
     public static function ctrListar(): void
     {
         try {
-            $radicados = ModeloRadicados::mdlListarRadicados();
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+
+            // 1. Obtener identificador y rol del usuario (desde sesión activa o parámetros GET para tests)
+            $idUsuario = isset($_SESSION["id"]) 
+                            ? (int)$_SESSION["id"] 
+                            : (isset($_GET["id_usuario"]) ? (int)$_GET["id_usuario"] : null);
+
+            $rolSession = $_SESSION["rol"] ?? ($_GET["rol"] ?? null);
+
+            // 2. Determinar si el usuario tiene privilegios de Administrador
+            $esAdmin = false;
+
+            if (isset($_GET["es_admin"])) {
+                $esAdmin = ($_GET["es_admin"] === "1" || $_GET["es_admin"] === "true");
+            } elseif ($rolSession !== null) {
+                // Comprobación rápida por ID conocido (1 = Administrador, 35 = Admin) o slug directo
+                if ($rolSession == 1 || $rolSession == 35 || strtolower((string)$rolSession) === "admin") {
+                    $esAdmin = true;
+                } else {
+                    // Verificación en base de datos del rol si es un id numérico
+                    $db = Conexion::conectar();
+                    $stmtRol = $db->prepare("SELECT rol, nombre FROM roles WHERE id_rol = :id_rol LIMIT 1");
+                    $stmtRol->bindValue(":id_rol", (int)$rolSession, PDO::PARAM_INT);
+                    $stmtRol->execute();
+                    $rolData = $stmtRol->fetch(PDO::FETCH_ASSOC);
+                    if ($rolData && (strtolower($rolData["rol"]) === "admin" || stripos($rolData["nombre"], "admin") !== false)) {
+                        $esAdmin = true;
+                    }
+                }
+            }
+
+            // 3. Capturar filtros opcionales de búsqueda
+            $filtros = [];
+            if (!empty($_GET["id_estado"])) {
+                $filtros["id_estado"] = (int)$_GET["id_estado"];
+            }
+            if (!empty($_GET["tipo_radicado"])) {
+                $filtros["tipo_radicado"] = trim($_GET["tipo_radicado"]);
+            }
+            if (!empty($_GET["fecha"])) {
+                $filtros["fecha"] = trim($_GET["fecha"]);
+            }
+
+            // 4. Invocar modelo de persistencia con sentencias preparadas
+            $radicados = ModeloRadicados::mdlListarRadicados($idUsuario, $esAdmin, $filtros);
+
             RespuestaHelper::exito($radicados, "Listado de radicados obtenido correctamente");
         } catch (Exception $e) {
             error_log("Error en ControladorRadicados::ctrListar: " . $e->getMessage());
