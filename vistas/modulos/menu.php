@@ -8,12 +8,12 @@
       <!-- Sidebar -->
       <div class="sidebar">
           <!-- Sidebar user (optional) -->
-          <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+          <div class="user-panel mt-3 pb-3 mb-3 d-flex" id="btnPerfilSidebar" style="cursor: pointer;" title="Haga clic para ver o editar su perfil" data-toggle="modal" data-target="#modal-perfilUsuario">
               <div class="image">
-                  <img src="vistas/dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">
+                  <img src="vistas/dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="Foto de perfil">
               </div>
               <div class="info">
-                  <a href="#" class="d-block"><?php echo isset($_SESSION["nombre"]) ? $_SESSION["nombre"] : "Usuario"; ?></a>
+                  <a href="javascript:void(0)" class="d-block" id="perfilNombreSidebar" data-toggle="modal" data-target="#modal-perfilUsuario"><?php echo isset($_SESSION["nombre"]) ? $_SESSION["nombre"] : "Usuario"; ?></a>
               </div>
           </div>
 

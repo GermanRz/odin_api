@@ -32,6 +32,10 @@ class ControladorUsuarios {
         try {
             $usuario = ModeloUsuarios::mdlMostrarUsuario("id_usuario", $id);
             if ($usuario) {
+                // Validar si la contraseña actual sigue siendo igual al documento de identificación
+                $esClavePorDefecto = password_verify((string)$usuario["num_identificacion"], (string)$usuario["password"]);
+                $usuario["clavePorDefecto"] = $esClavePorDefecto;
+
                 // Seguridad: jamás exponer el hash de la contraseña en respuestas de la API
                 unset($usuario["password"]);
                 RespuestaHelper::exito($usuario, "Usuario encontrado");
@@ -133,6 +137,14 @@ class ControladorUsuarios {
             RespuestaHelper::error("El correo electrónico ya está en uso por otro usuario", 409);
         }
 
+        // Si no se proporcionó rol o dependencia válida (ej: actualización desde perfil propio), preservar los existentes
+        if ($idRol <= 0 && isset($usuarioExistente["id_rol"])) {
+            $idRol = (int)$usuarioExistente["id_rol"];
+        }
+        if ($idDependencia <= 0 && isset($usuarioExistente["id_dependencia"])) {
+            $idDependencia = (int)$usuarioExistente["id_dependencia"];
+        }
+
         $datosActualizar = [
             "nombre"        => $nombre,
             "correo"        => $correo,
@@ -142,10 +154,32 @@ class ControladorUsuarios {
             "telefono"      => $telefono
         ];
 
+        // Manejo opcional de cambio de contraseña
+        if (!empty($datos["password"])) {
+            $nuevaClave = trim((string)$datos["password"]);
+            if (strlen($nuevaClave) < 4) {
+                RespuestaHelper::error("La nueva contraseña debe tener al menos 4 caracteres", 400);
+            }
+            $datosActualizar["password"] = password_hash($nuevaClave, PASSWORD_DEFAULT);
+        }
+
         $resultado = ModeloUsuarios::mdlEditarUsuario($id, $datosActualizar);
 
         if ($resultado) {
-            RespuestaHelper::exito([], "Usuario actualizado correctamente", 200);
+            // Si el usuario actualizado es el mismo que tiene la sesión activa, sincronizar la sesión
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                if ((isset($_SESSION["id"]) && (int)$_SESSION["id"] === $id) ||
+                    (isset($_SESSION["id_usuario"]) && (int)$_SESSION["id_usuario"] === $id)) {
+                    $_SESSION["nombre"] = $nombre;
+                    $_SESSION["correo"] = $correo;
+                    if (!empty($datos["password"])) {
+                        $_SESSION["clavePorDefecto"] = ((string)$usuarioExistente["num_identificacion"] === trim((string)$datos["password"]));
+                    }
+                }
+            }
+            RespuestaHelper::exito([
+                "clavePorDefecto" => (!empty($datos["password"]) ? ((string)$usuarioExistente["num_identificacion"] === trim((string)$datos["password"])) : false)
+            ], "Usuario actualizado correctamente", 200);
         } else {
             RespuestaHelper::error("No fue posible actualizar la información del usuario", 500);
         }
@@ -220,6 +254,7 @@ class ControladorUsuarios {
                             $_SESSION["correo"] = $respuesta["correo"];
                             $_SESSION["rol"] = $respuesta["id_rol"];
                             $_SESSION["estado"] = $respuesta["estado"];
+                            $_SESSION["clavePorDefecto"] = password_verify((string)$respuesta["num_identificacion"], (string)$respuesta["password"]);
 
                             echo '<script>window.location = "inicio";</script>';
                         } else {

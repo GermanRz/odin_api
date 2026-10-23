@@ -57,11 +57,14 @@ class ModeloUsuarios {
         }
 
         try {
-            $stmt = Conexion::conectar()->prepare("SELECT id_usuario, tipo_identificacion, num_identificacion,
-                                                          nombre, correo, id_rol, id_dependencia, estado,
-                                                          direccion, telefono, password
-                                                   FROM usuarios
-                                                   WHERE {$campo} = :valor LIMIT 1");
+            $stmt = Conexion::conectar()->prepare("SELECT u.id_usuario, u.tipo_identificacion, u.num_identificacion,
+                                                          u.nombre, u.correo, u.id_rol, u.id_dependencia, u.estado,
+                                                          u.direccion, u.telefono, u.password,
+                                                          r.nombre AS rol, d.nombre AS dependencia
+                                                   FROM usuarios u
+                                                   LEFT JOIN roles r ON r.id_rol = u.id_rol
+                                                   LEFT JOIN dependencias d ON d.id_dependencia = u.id_dependencia
+                                                   WHERE u.{$campo} = :valor LIMIT 1");
             $stmt->bindParam(":valor", $valor, PDO::PARAM_STR);
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -137,14 +140,21 @@ class ModeloUsuarios {
         }
 
         try {
-            $stmt = Conexion::conectar()->prepare("UPDATE usuarios
-                                                   SET nombre = :nombre,
-                                                       correo = :correo,
-                                                       id_rol = :id_rol,
-                                                       id_dependencia = :id_dependencia,
-                                                       direccion = :direccion,
-                                                       telefono = :telefono
-                                                   WHERE id_usuario = :id");
+            $sql = "UPDATE usuarios
+                    SET nombre = :nombre,
+                        correo = :correo,
+                        id_rol = :id_rol,
+                        id_dependencia = :id_dependencia,
+                        direccion = :direccion,
+                        telefono = :telefono";
+
+            if (!empty($datos["password"])) {
+                $sql .= ", password = :password";
+            }
+
+            $sql .= " WHERE id_usuario = :id";
+
+            $stmt = Conexion::conectar()->prepare($sql);
 
             $nombre        = $datos["nombre"] ?? "";
             $correo        = $datos["correo"] ?? "";
@@ -160,6 +170,10 @@ class ModeloUsuarios {
             $stmt->bindParam(":direccion",      $direccion, PDO::PARAM_STR);
             $stmt->bindParam(":telefono",       $telefono, PDO::PARAM_STR);
             $stmt->bindParam(":id",             $id, PDO::PARAM_INT);
+
+            if (!empty($datos["password"])) {
+                $stmt->bindParam(":password", $datos["password"], PDO::PARAM_STR);
+            }
 
             return $stmt->execute();
         } catch (PDOException $e) {
