@@ -4,7 +4,7 @@
     <div class="row mb-2">
       <div class="col-sm-6">
         <h1><i class="fas fa-file-alt mr-2"></i>Radicación Documental</h1>
-        <p class="text-muted mb-0">Registro, clasificación y asignación inicial del trámite</p>
+        <p class="text-muted mb-0">Registro y asignación inicial del trámite de entrada</p>
       </div>
       <div class="col-sm-6">
         <ol class="breadcrumb float-sm-right">
@@ -188,62 +188,6 @@
           </div>
           <!-- /Card Asignación Inicial -->
 
-          <!-- Card: Clasificación Documental -->
-          <div class="card card-outline card-success">
-            <div class="card-header">
-              <h3 class="card-title"><i class="fas fa-folder-open mr-1"></i>Clasificación Documental</h3>
-            </div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-md-6 form-group">
-                  <label for="dependenciaDestino"><i class="fas fa-sitemap mr-1"></i>Dependencia destino <span class="text-danger">*</span></label>
-                  <select class="form-control" id="dependenciaDestino" name="dependenciaDestino" required>
-                    <option value="">Seleccione una dependencia...</option>
-                  </select>
-                  <div class="invalid-feedback">Este campo es requerido</div>
-                </div>
-                <div class="col-md-6 form-group">
-                  <label for="serieDocumental"><i class="fas fa-list mr-1"></i>Serie documental <span class="text-danger">*</span></label>
-                  <select class="form-control" id="serieDocumental" name="serieDocumental" required>
-                    <option value="">Seleccione una serie...</option>
-                  </select>
-                  <div class="invalid-feedback">Este campo es requerido</div>
-                </div>
-              </div>
-
-              <div class="row">
-                <div class="col-md-6 form-group">
-                  <label for="subserieDocumental"><i class="fas fa-indent mr-1"></i>Subserie documental</label>
-                  <select class="form-control" id="subserieDocumental" name="subserieDocumental">
-                    <option value="">Seleccione una subserie...</option>
-                  </select>
-                </div>
-                <div class="col-md-6 form-group">
-                  <label for="tipoDocumental"><i class="fas fa-file mr-1"></i>Tipo documental <span class="text-danger">*</span></label>
-                  <select class="form-control" id="tipoDocumental" name="tipoDocumental" required>
-                    <option value="">Seleccione un tipo...</option>
-                  </select>
-                  <div class="invalid-feedback">Este campo es requerido</div>
-                </div>
-              </div>
-
-              <div class="row">
-                <div class="col-md-12 form-group">
-                  <label for="nivelConfidencialidad"><i class="fas fa-lock mr-1"></i>Nivel de confidencialidad <span class="text-danger">*</span></label>
-                  <select class="form-control" id="nivelConfidencialidad" name="nivelConfidencialidad" required>
-                    <option value="">Seleccione...</option>
-                    <option value="publico">Público</option>
-                    <option value="interno">Interno</option>
-                    <option value="confidencial">Confidencial</option>
-                    <option value="reservado">Reservado</option>
-                  </select>
-                  <div class="invalid-feedback">Este campo es requerido</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- /Card Clasificación Documental -->
-
           <!-- Card: Información del Documento -->
           <div class="card card-outline card-success">
             <div class="card-header">
@@ -400,12 +344,6 @@
 
                 <dt class="col-sm-5"><i class="fas fa-user-shield mr-1"></i>Encargado:</dt>
                 <dd class="col-sm-7"><span class="resumen-responsable text-muted">—</span></dd>
-
-                <dt class="col-sm-5"><i class="fas fa-list mr-1"></i>Serie:</dt>
-                <dd class="col-sm-7"><span class="resumen-serie text-muted">—</span></dd>
-
-                <dt class="col-sm-5"><i class="fas fa-indent mr-1"></i>Subserie:</dt>
-                <dd class="col-sm-7"><span class="resumen-subserie text-muted">—</span></dd>
 
                 <dt class="col-sm-5"><i class="fas fa-heading mr-1"></i>Asunto:</dt>
                 <dd class="col-sm-7"><span class="resumen-asunto text-muted">—</span></dd>
