@@ -388,6 +388,8 @@ function actualizarResumen() {
 function limpiarFormulario() {
     $("#formRadicacion")[0].reset();
     $("#formRadicacion").removeClass("was-validated");
+    $("#tipoRadicacion").val("entrada");
+    $("#tipoRadicacionVisible").val("Entrada");
     uploadedFiles = [];
     renderizarListaArchivos();
     $("#radicacionAnonima").prop("checked", false).trigger("change");

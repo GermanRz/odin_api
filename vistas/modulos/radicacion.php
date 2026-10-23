@@ -56,14 +56,10 @@
                   <div class="invalid-feedback">Este campo es requerido</div>
                 </div>
                 <div class="col-md-6 form-group">
-                  <label for="tipoRadicacion"><i class="fas fa-exchange-alt mr-1"></i>Tipo de radicación <span class="text-danger">*</span></label>
-                  <select class="form-control" id="tipoRadicacion" name="tipoRadicacion" required>
-                    <option value="">Seleccione...</option>
-                    <option value="entrada">Entrada</option>
-                    <option value="salida">Salida</option>
-                    <option value="interna">Interna</option>
-                  </select>
-                  <div class="invalid-feedback">Este campo es requerido</div>
+                  <label for="tipoRadicacionVisible"><i class="fas fa-sign-in-alt mr-1"></i>Tipo de radicación</label>
+                  <input type="text" class="form-control bg-light" id="tipoRadicacionVisible" value="Entrada" readonly>
+                  <input type="hidden" id="tipoRadicacion" name="tipoRadicacion" value="entrada">
+                  <small class="form-text text-muted">Establecido por defecto como documento de entrada</small>
                 </div>
               </div>
 
@@ -396,6 +392,9 @@
             </div>
             <div class="card-body p-0">
               <dl class="row px-3 pt-3 mb-0">
+                <dt class="col-sm-5"><i class="fas fa-sign-in-alt mr-1"></i>Tipo:</dt>
+                <dd class="col-sm-7"><span class="badge badge-info"><i class="fas fa-arrow-circle-down mr-1"></i>Entrada</span></dd>
+
                 <dt class="col-sm-5"><i class="fas fa-user mr-1"></i>Solicitante:</dt>
                 <dd class="col-sm-7"><span class="resumen-solicitante text-muted">—</span></dd>
 
