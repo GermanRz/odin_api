@@ -21,7 +21,6 @@ const ALLOWED_MIME_TYPES = [
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
 
 let uploadedFiles = [];
-let subseriesCatalogo = [];
 
 $(document).ready(function() {
     inicializarCatalogos();
@@ -43,7 +42,7 @@ $(document).ready(function() {
  * Carga de catálogos maestros desde la API REST (trámites, dependencias, estados, usuarios)
  */
 function inicializarCatalogos() {
-    // 1. Cargar Trámites, Dependencias, Estados, Series y Subseries
+    // 1. Cargar Trámites, Dependencias y Estados
     fetch(API_CATALOGOS_URL)
         .then(r => r.json())
         .then(res => {
@@ -51,15 +50,11 @@ function inicializarCatalogos() {
                 poblarSelectTramites(res.data.tramites || []);
                 poblarSelectDependencias(res.data.dependencias || []);
                 poblarSelectEstados(res.data.estados || []);
-                poblarSelectSeries(res.data.series || [], res.data.subseries || []);
-                poblarSelectTiposDocumentales();
             }
         })
         .catch(err => {
             console.error("Error al cargar catálogos maestros:", err);
         });
-
-    // 2. Regla de negocio: Radicados se asignan a dependencias y su responsable se autollena automáticamente
 }
 
 function poblarSelectTramites(tramites) {
@@ -83,7 +78,6 @@ function poblarSelectTramites(tramites) {
         const depId = selectedOpt.data("dep");
         if (depId) {
             $("#dependenciaResponsable").val(depId);
-            $("#dependenciaDestino").val(depId);
             asignarEncargadoPorDependencia(depId);
         }
     });
@@ -93,23 +87,18 @@ let catalogoDependencias = [];
 
 function poblarSelectDependencias(dependencias) {
     catalogoDependencias = dependencias || [];
-    const $dest = $("#dependenciaDestino");
     const $resp = $("#dependenciaResponsable");
 
-    $dest.empty().append('<option value="">Seleccione una dependencia...</option>');
     $resp.empty().append('<option value="">Seleccione una dependencia...</option>');
 
     catalogoDependencias.forEach(d => {
         const optionHtml = `<option value="${d.id_dependencia}">[${d.codigo || 'DEP'}] ${d.nombre}</option>`;
-        $dest.append(optionHtml);
         $resp.append(optionHtml);
     });
 
     // Al seleccionar dependencia se autollena el responsable encargado y no permite editarlo
-    $("#dependenciaResponsable, #dependenciaDestino").off("change.encargado").on("change.encargado", function() {
+    $("#dependenciaResponsable").off("change.encargado").on("change.encargado", function() {
         const depId = $(this).val();
-        $("#dependenciaResponsable").val(depId);
-        $("#dependenciaDestino").val(depId);
 
         if (!depId) {
             $("#responsable").val("");
@@ -177,63 +166,6 @@ function poblarSelectEstados(estados) {
     }
 }
 
-function poblarSelectSeries(series, subseries) {
-    subseriesCatalogo = subseries;
-    const $selectSerie = $("#serieDocumental");
-    const $selectSubserie = $("#subserieDocumental");
-
-    $selectSerie.empty().append('<option value="">Seleccione una serie...</option>');
-    series.forEach(s => {
-        $selectSerie.append(`<option value="${s.id_serie}" data-codigo="${s.codigo_serie}">[${s.codigo_serie}] ${s.nombre_serie}</option>`);
-    });
-
-    $selectSubserie.empty().append('<option value="">Seleccione primero una serie documental...</option>');
-
-    // Filtrado dinámico y cascada de subseries al seleccionar una serie
-    $selectSerie.on("change", function() {
-        const idSerieSeleccionada = $(this).val();
-        $selectSubserie.empty();
-
-        if (!idSerieSeleccionada) {
-            $selectSubserie.append('<option value="">Seleccione primero una serie documental...</option>');
-            actualizarResumen();
-            return;
-        }
-
-        const subseriesFiltradas = subseriesCatalogo.filter(sub => String(sub.id_serie) === String(idSerieSeleccionada));
-
-        if (subseriesFiltradas.length === 0) {
-            $selectSubserie.append('<option value="">No hay subseries registradas para esta serie</option>');
-        } else {
-            $selectSubserie.append('<option value="">Seleccione una subserie...</option>');
-            subseriesFiltradas.forEach(sub => {
-                $selectSubserie.append(`<option value="${sub.id_subserie}" data-codigo="${sub.codigo_subserie}">[${sub.codigo_subserie}] ${sub.nombre_subserie}</option>`);
-            });
-        }
-        actualizarResumen();
-    });
-
-    $selectSubserie.on("change", actualizarResumen);
-}
-
-function poblarSelectTiposDocumentales() {
-    const $select = $("#tipoDocumental");
-    $select.empty().append('<option value="">Seleccione un tipo...</option>');
-    const tipos = [
-        "Oficio",
-        "Memorando",
-        "Solicitud / Petición",
-        "Acta",
-        "Resolución",
-        "Informe",
-        "Certificación",
-        "Circular",
-        "Contrato / Convenio"
-    ];
-    tipos.forEach(t => {
-        $select.append(`<option value="${t}">${t}</option>`);
-    });
-}
 
 /**
  * Gestión interactiva de arrastrar y soltar (Drag & Drop) y selección de archivos
@@ -515,9 +447,7 @@ function inicializarEventosResumen() {
     const campos = [
         "#numeroDocumento",
         "#nombreSolicitante",
-        "#dependenciaDestino",
-        "#serieDocumental",
-        "#subserieDocumental",
+        "#dependenciaResponsable",
         "#asuntoDocumento",
         "#prioridad",
         "#fechaLimite"
@@ -537,17 +467,11 @@ function actualizarResumen() {
         $(".resumen-solicitante").text(solTexto);
     }
 
-    const depText = $("#dependenciaResponsable option:selected").text() || $("#dependenciaDestino option:selected").text();
+    const depText = $("#dependenciaResponsable option:selected").text();
     $(".resumen-dependencia").text(depText && !depText.includes("Seleccione") ? depText : "—");
 
     const respText = $("#responsableVisible").val();
     $(".resumen-responsable").text(respText && !respText.includes("Se asignará") ? respText : "—");
-
-    const serieText = $("#serieDocumental option:selected").text();
-    $(".resumen-serie").text(serieText && !serieText.includes("Seleccione") ? serieText : "—");
-
-    const subserieText = $("#subserieDocumental option:selected").text();
-    $(".resumen-subserie").text(subserieText && !subserieText.includes("Seleccione") && !subserieText.includes("No hay") ? subserieText : "—");
 
     const asunto = $("#asuntoDocumento").val().trim();
     $(".resumen-asunto").text(asunto || "—");
@@ -574,13 +498,11 @@ function limpiarFormulario() {
     ultimoDocumentoBuscado = "";
     $("#remitenteFeedback").empty();
     $("#dependenciaResponsable").val("");
-    $("#dependenciaDestino").val("");
     $("#responsable").val("");
     $("#responsableVisible").val("");
     uploadedFiles = [];
     renderizarListaArchivos();
     $("#radicacionAnonima").prop("checked", false).trigger("change");
-    $("#subserieDocumental").empty().append('<option value="">Seleccione primero una serie documental...</option>');
     actualizarResumen();
 }
 

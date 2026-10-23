@@ -70,6 +70,18 @@ if (isset($_SESSION["iniciarSesion"]) && $_SESSION["iniciarSesion"] == "ok") {
 
     echo '<div class="content-wrapper">';
 
+    // Verificación de seguridad: Detectar si la clave activa es igual al número de cédula
+    if (!isset($_SESSION["clavePorDefecto"]) && isset($_SESSION["id"])) {
+        $uSesionActiva = ModeloUsuarios::mdlMostrarUsuario("id_usuario", $_SESSION["id"]);
+        if ($uSesionActiva) {
+            $_SESSION["clavePorDefecto"] = password_verify((string)$uSesionActiva["num_identificacion"], (string)$uSesionActiva["password"]);
+        }
+    }
+
+    if (!empty($_SESSION["clavePorDefecto"])) {
+        include "modulos/alerta_clave_defecto.php";
+    }
+
     if (isset($_GET["ruta"])) {
 
       $ruta = $_GET["ruta"];
@@ -123,9 +135,11 @@ if (isset($_SESSION["iniciarSesion"]) && $_SESSION["iniciarSesion"] == "ok") {
     echo '</div>';
 
     include "modulos/footer.php";
+    include "modulos/perfil_modal.php";
 
   echo '</div>';
   echo '<!-- ./wrapper -->';
+  echo '<script src="vistas/js/perfil.js"></script>';
 
 } else {
 

@@ -74,9 +74,11 @@ class ModeloUsuarios {
                         u.direccion,
                         u.telefono,
                         u.password,
+                        r.nombre AS rol,
                         r.nombre AS rol_nombre,
                         r.rol AS rol_codigo,
                         r.estado AS rol_estado,
+                        d.nombre AS dependencia,
                         d.nombre AS dependencia_nombre,
                         d.codigo AS dependencia_codigo
                  FROM usuarios u
@@ -202,6 +204,7 @@ class ModeloUsuarios {
         }
 
         try {
+
             $nombre        = $datos["nombre"] ?? "";
             $correo        = $datos["correo"] ?? "";
             $idRol         = (int)($datos["idRol"] ?? $datos["id_rol"] ?? $datos["rol"] ?? 0);
@@ -243,6 +246,10 @@ class ModeloUsuarios {
             $stmt->bindParam(":direccion",      $direccion, PDO::PARAM_STR);
             $stmt->bindParam(":telefono",       $telefono, PDO::PARAM_STR);
             $stmt->bindParam(":id",             $id, PDO::PARAM_INT);
+
+            if (!empty($datos["password"])) {
+                $stmt->bindParam(":password", $datos["password"], PDO::PARAM_STR);
+            }
 
             return $stmt->execute();
         } catch (PDOException $e) {

@@ -33,6 +33,11 @@ class ControladorUsuarios {
         try {
             $usuario = ModeloUsuarios::mdlMostrarUsuario("id_usuario", $id);
             if ($usuario) {
+                // Validar si la contraseña actual sigue siendo igual al documento de identificación
+                $esClavePorDefecto = password_verify((string)$usuario["num_identificacion"], (string)$usuario["password"]);
+                $usuario["clavePorDefecto"] = $esClavePorDefecto;
+
+                // Seguridad: jamás exponer el hash de la contraseña en respuestas de la API
                 unset($usuario["password"]);
                 $idRol = (int)($usuario["id_rol"] ?? 0);
                 $usuario["permisos_rol"] = $idRol > 0 ? ControladorRoles::ctrMostrarPermisosPorRol($idRol) : [];
@@ -132,6 +137,14 @@ class ControladorUsuarios {
             RespuestaHelper::error("El correo electrónico ya está en uso por otro usuario", 409);
         }
 
+        // Si no se proporcionó rol o dependencia válida (ej: actualización desde perfil propio), preservar los existentes
+        if ($idRol <= 0 && isset($usuarioExistente["id_rol"])) {
+            $idRol = (int)$usuarioExistente["id_rol"];
+        }
+        if ($idDependencia <= 0 && isset($usuarioExistente["id_dependencia"])) {
+            $idDependencia = (int)$usuarioExistente["id_dependencia"];
+        }
+
         $datosActualizar = [
             "nombre"        => $nombre,
             "correo"        => $correo,
@@ -141,20 +154,34 @@ class ControladorUsuarios {
             "telefono"      => $telefono
         ];
 
-        if ($nuevaPassword !== "") {
-            $datosActualizar["password"] = password_hash($nuevaPassword, PASSWORD_DEFAULT);
+        // Manejo opcional de cambio de contraseña
+        $nuevaClave = !empty($datos["password"]) ? trim((string)$datos["password"]) : $nuevaPassword;
+        if ($nuevaClave !== "") {
+            if (strlen($nuevaClave) < 4) {
+                RespuestaHelper::error("La nueva contraseña debe tener al menos 4 caracteres", 400);
+            }
+            $datosActualizar["password"] = password_hash($nuevaClave, PASSWORD_DEFAULT);
         }
 
         $resultado = ModeloUsuarios::mdlEditarUsuario($id, $datosActualizar);
 
         if ($resultado) {
-            if (isset($_SESSION["id"]) && (int)$_SESSION["id"] === $id) {
-                $_SESSION["nombre"] = $nombre;
-                $_SESSION["correo"] = $correo;
-                $_SESSION["rol"] = $idRol;
-                ControladorRoles::ctrCargarPermisosSesion($idRol);
+            // Si el usuario actualizado es el mismo que tiene la sesión activa, sincronizar la sesión
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                if ((isset($_SESSION["id"]) && (int)$_SESSION["id"] === $id) ||
+                    (isset($_SESSION["id_usuario"]) && (int)$_SESSION["id_usuario"] === $id)) {
+                    $_SESSION["nombre"] = $nombre;
+                    $_SESSION["correo"] = $correo;
+                    $_SESSION["rol"] = $idRol;
+                    ControladorRoles::ctrCargarPermisosSesion($idRol);
+                    if (!empty($datos["password"])) {
+                        $_SESSION["clavePorDefecto"] = ((string)$usuarioExistente["num_identificacion"] === trim((string)$datos["password"]));
+                    }
+                }
             }
-            RespuestaHelper::exito([], "Usuario actualizado correctamente", 200);
+            RespuestaHelper::exito([
+                "clavePorDefecto" => (!empty($datos["password"]) ? ((string)$usuarioExistente["num_identificacion"] === trim((string)$datos["password"])) : false)
+            ], "Usuario actualizado correctamente", 200);
         } else {
             RespuestaHelper::error("No fue posible actualizar la información del usuario", 500);
         }
@@ -248,8 +275,20 @@ class ControladorUsuarios {
 
                 if ($respuesta) {
                     if (password_verify($_POST["ingPassword"], $respuesta["password"])) {
-                        // RF-N09: Impedir el inicio de sesión de usuarios no activos
-                        if ($respuesta["estado"] !== "Activo") {
+                        if ($respuesta["estado"] === "Activo") {
+                            $_SESSION["iniciarSesion"] = "ok";
+                            $_SESSION["id"] = $respuesta["id_usuario"];
+                            $_SESSION["nombre"] = $respuesta["nombre"];
+                            $_SESSION["numIdentificacion"] = $respuesta["num_identificacion"];
+                            $_SESSION["num_identificacion"] = $respuesta["num_identificacion"];
+                            $_SESSION["correo"] = $respuesta["correo"];
+                            $_SESSION["rol"] = $respuesta["id_rol"];
+                            $_SESSION["estado"] = $respuesta["estado"];
+                            $_SESSION["clavePorDefecto"] = password_verify((string)$respuesta["num_identificacion"], (string)$respuesta["password"]);
+                            ControladorRoles::ctrCargarPermisosSesion((int)$respuesta["id_rol"]);
+
+                            echo '<script>window.location = "inicio";</script>';
+                        } else {
                             echo '<div class="alert alert-warning mt-3 text-center" role="alert">
                                     <i class="icon fas fa-exclamation-triangle mr-1"></i> El usuario se encuentra desactivado.
                                   </div>';
