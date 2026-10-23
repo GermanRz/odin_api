@@ -1,6 +1,6 @@
 /**
  * Script de Módulo: Gestión de Usuarios
- * Consumo 100% asíncrono de la API RESTful de ODIN.
+ * Consumo 100% asíncrono de la API RESTful de ODIN (/api/usuarios).
  */
 
 const API_USUARIOS_URL = "api/usuarios";
@@ -41,11 +41,11 @@ function inicializarTablaUsuarios() {
             { data: "nombre" },
             { data: "num_identificacion" },
             { data: "correo" },
-            { 
+            {
                 data: "rol",
                 defaultContent: "<span class='text-muted'>Sin rol</span>"
             },
-            { 
+            {
                 data: "dependencia",
                 defaultContent: "<span class='text-muted'>Sin dependencia</span>"
             },
@@ -54,22 +54,37 @@ function inicializarTablaUsuarios() {
                 render: function(data, type, row) {
                     const colorClass = data === "Activo" ? "btn-success" : "btn-danger";
                     const nuevoEstado = data === "Activo" ? "Inactivo" : "Activo";
+                    const deshabilitado = parseInt(row.id_usuario, 10) === 1 ? "disabled" : "";
                     return `<button class="btn btn-xs ${colorClass} btnCambiarEstado" 
                                     data-id="${row.id_usuario}" 
                                     data-estado="${nuevoEstado}"
-                                    title="Clic para cambiar a ${nuevoEstado}">
+                                    title="Clic para cambiar a ${nuevoEstado}"
+                                    ${deshabilitado}>
                                 ${data}
                             </button>`;
                 }
             },
             {
                 data: null,
+                orderable: false,
                 render: function(data, type, row) {
-                    return `<button class="btn btn-warning btn-sm btnCargarEditar" 
-                                    data-id="${row.id_usuario}"
-                                    title="Modificar usuario">
-                                <i class="fas fa-edit"></i>
-                            </button>`;
+                    const idUsr = parseInt(row.id_usuario, 10);
+                    const esAdminPrincipal = idUsr === 1;
+                    const nombreSeguro = $("<div>").text(row.nombre || "").html();
+
+                    return `
+                        <button class="btn btn-warning btn-sm btnCargarEditar mr-1" 
+                                data-id="${idUsr}"
+                                title="Modificar usuario">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm btnEliminarUsuario"
+                                data-id="${idUsr}"
+                                data-nombre="${nombreSeguro}"
+                                title="Eliminar usuario"
+                                ${esAdminPrincipal ? "disabled" : ""}>
+                            <i class="fas fa-trash"></i>
+                        </button>`;
                 }
             }
         ],
@@ -107,6 +122,7 @@ function cargarEstadisticas() {
                 $("#totalUsuarios").text(res.data.total ?? 0);
                 $("#totalUsuariosActivos").text(res.data.activos ?? 0);
                 $("#totalUsuariosInactivos").text(res.data.inactivos ?? 0);
+                $("#totalRolesActivos").text(res.data.rolesActivos ?? 0);
             }
         })
         .catch(err => {
@@ -118,14 +134,15 @@ function cargarEstadisticas() {
 3. CARGAR SELECTS DE ROLES Y DEPENDENCIAS
 =============================================*/
 function cargarSelects() {
-    // Roles
     fetch("api/roles")
         .then(res => res.json())
         .then(res => {
             if (res.success && Array.isArray(res.data)) {
                 let options = '<option value="">Seleccione un rol</option>';
                 res.data.forEach(r => {
-                    options += `<option value="${r.id_rol}">${r.nombre || r.rol}</option>`;
+                    if (r.estado === "Activo") {
+                        options += `<option value="${r.id_rol}">${r.nombre || r.rol}</option>`;
+                    }
                 });
                 $("#nuevoRol").html(options);
                 $("#editarRol").html(options);
@@ -133,14 +150,15 @@ function cargarSelects() {
         })
         .catch(err => console.error("Error al cargar roles:", err));
 
-    // Dependencias
     fetch("api/dependencias")
         .then(res => res.json())
         .then(res => {
             if (res.success && Array.isArray(res.data)) {
                 let options = '<option value="">Seleccione una dependencia</option>';
                 res.data.forEach(d => {
-                    options += `<option value="${d.id_dependencia}">${d.nombre || d.dependencia}</option>`;
+                    if (d.estado === "Activo" || d.estado === "Activa") {
+                        options += `<option value="${d.id_dependencia}">${d.nombre || d.dependencia}</option>`;
+                    }
                 });
                 $("#nuevaDependencia").html(options);
                 $("#editarDependencia").html(options);
@@ -207,7 +225,56 @@ function configurarFormularioCrear() {
 }
 
 /*=============================================
-5. CARGAR DATOS PARA EDICIÓN (GET ESPECÍFICO)
+5. VER FICHA DETALLADA Y PERMISOS DEL USUARIO
+=============================================*/
+$(document).on("click", ".btnVerUsuario", function() {
+    const idUsuario = $(this).data("id");
+
+    fetch(`${API_USUARIOS_URL}/${idUsuario}`)
+        .then(res => res.json())
+        .then(res => {
+            if (res.success && res.data) {
+                const u = res.data;
+                $("#verNombreUsuario").text(u.nombre || "");
+                $("#verIdentificacionUsuario").text(`${u.tipo_identificacion || "CC"} - ${u.num_identificacion || ""}`);
+                $("#verCorreoUsuario").text(u.correo || "");
+                $("#verTelefonoUsuario").text(u.telefono || "No registrado");
+                $("#verRolUsuario").text(u.rol_nombre || "Sin rol");
+                $("#verDependenciaUsuario").text(u.dependencia_nombre || "Sin dependencia");
+                $("#verDireccionUsuario").text(u.direccion || "No registrada");
+
+                const badgeEstado = u.estado === "Activo"
+                    ? '<span class="badge badge-success">Activo</span>'
+                    : '<span class="badge badge-danger">Inactivo</span>';
+                $("#verEstadoUsuario").html(badgeEstado);
+
+                const contenedorPermisos = $("#verPermisosUsuario");
+                contenedorPermisos.empty();
+
+                if (Array.isArray(u.permisos_rol) && u.permisos_rol.length > 0) {
+                    u.permisos_rol.forEach(p => {
+                        const mod = p.modulo_etiqueta || p.modulo || "General";
+                        contenedorPermisos.append(`
+                            <div class="col-md-6 mb-2">
+                                <div class="p-2 border rounded bg-light h-100">
+                                    <span class="badge badge-primary mr-1">${mod}</span>
+                                    <strong>${$("<div>").text(p.nombre || "").html()}</strong>
+                                    <div class="small text-muted">${$("<div>").text(p.descripcion || "").html()}</div>
+                                </div>
+                            </div>
+                        `);
+                    });
+                } else {
+                    contenedorPermisos.html('<div class="col-12 text-muted">El rol asignado no posee permisos granulares configurados.</div>');
+                }
+
+                $("#modal-verUsuario").modal("show");
+            }
+        });
+});
+
+/*=============================================
+6. CARGAR DATOS PARA EDICIÓN (GET ESPECÍFICO)
 =============================================*/
 $(document).on("click", ".btnCargarEditar", function() {
     const idUsuario = $(this).data("id");
@@ -226,6 +293,7 @@ $(document).on("click", ".btnCargarEditar", function() {
                 $("#editarDependencia").val(u.id_dependencia);
                 $("#editarDireccion").val(u.direccion);
                 $("#editarTelefono").val(u.telefono);
+                $("#editarPassword").val("");
 
                 $("#modal-editarUsuario").modal("show");
             } else {
@@ -246,7 +314,7 @@ $(document).on("click", ".btnCargarEditar", function() {
 });
 
 /*=============================================
-6. ACTUALIZAR USUARIO (PUT ASÍNCRONO)
+7. ACTUALIZAR USUARIO (PUT ASÍNCRONO)
 =============================================*/
 function configurarFormularioEditar() {
     $("#frmEditarUsuario").on("submit", function(e) {
@@ -259,7 +327,8 @@ function configurarFormularioEditar() {
             idRol:         $("#editarRol").val(),
             idDependencia: $("#editarDependencia").val(),
             direccion:     $("#editarDireccion").val(),
-            telefono:      $("#editarTelefono").val()
+            telefono:      $("#editarTelefono").val(),
+            password:      $("#editarPassword").val()
         };
 
         fetch(`${API_USUARIOS_URL}/${idUsuario}`, {
@@ -300,7 +369,7 @@ function configurarFormularioEditar() {
 }
 
 /*=============================================
-7. CAMBIO DE ESTADO ATÓMICO (PATCH ASÍNCRONO)
+8. CAMBIO DE ESTADO ATÓMICO (PATCH ASÍNCRONO)
 =============================================*/
 $(document).on("click", ".btnCambiarEstado", function() {
     const boton = $(this);
@@ -333,5 +402,57 @@ $(document).on("click", ".btnCambiarEstado", function() {
             title: "Error de comunicación",
             text: "No se pudo conectar con el servidor de la API."
         });
+    });
+});
+
+/*=============================================
+9. ELIMINAR USUARIO (DELETE ASÍNCRONO)
+=============================================*/
+$(document).on("click", ".btnEliminarUsuario", function() {
+    const idUsuario = $(this).data("id");
+    const nombreUsuario = $(this).data("nombre") || "este usuario";
+
+    Swal.fire({
+        title: `¿Eliminar a "${nombreUsuario}"?`,
+        text: "Esta acción eliminará el registro del usuario de forma permanente.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`${API_USUARIOS_URL}/${idUsuario}`, {
+                method: "DELETE"
+            })
+            .then(res => res.json().then(body => ({ status: res.status, body })))
+            .then(({ status, body }) => {
+                if (status === 200 && body.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "¡Eliminado!",
+                        text: body.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    tablaUsuarios.ajax.reload(null, false);
+                    cargarEstadisticas();
+                } else {
+                    Swal.fire({
+                        icon: "warning",
+                        title: "No se puede eliminar",
+                        text: body.message || "No fue posible eliminar el usuario."
+                    });
+                }
+            })
+            .catch(() => {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error de conexión",
+                    text: "No se pudo comunicar con el servidor."
+                });
+            });
+        }
     });
 });

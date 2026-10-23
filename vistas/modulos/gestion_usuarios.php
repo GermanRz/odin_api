@@ -4,6 +4,9 @@
     <div class="row mb-2">
       <div class="col-sm-6">
         <h1><i class="fas fa-users-cog mr-2"></i> Gestión de Usuarios</h1>
+        <p class="text-muted mb-0">
+          RF-N15 · RF-44 — Administración de cuentas, roles, dependencias y permisos de acceso.
+        </p>
       </div>
       <div class="col-sm-6">
         <ol class="breadcrumb float-sm-right">
@@ -19,7 +22,7 @@
 <section class="content">
   <div class="container-fluid">
 
-    <!-- Tarjetas de métricas informativas (Actualizadas asíncronamente) -->
+    <!-- Tarjetas de métricas informativas (Actualizadas asíncronamente vía API REST) -->
     <div class="row">
       <div class="col-lg-3 col-sm-6 col-12">
         <div class="small-box bg-info">
@@ -58,10 +61,10 @@
       </div>
 
       <div class="col-lg-3 col-sm-6 col-12">
-        <div class="small-box bg-secondary">
+        <div class="small-box bg-primary">
           <div class="inner">
-            <h3>ODIN</h3>
-            <p>Control de Acceso</p>
+            <h3 id="totalRolesActivos">--</h3>
+            <p>Roles Activos (RBAC)</p>
           </div>
           <div class="icon">
             <i class="fas fa-shield-alt"></i>
@@ -71,11 +74,11 @@
     </div>
 
     <!-- TARJETA PRINCIPAL CON TABLA VACÍA PARA DATATABLES AJAX -->
-    <div class="card card-primary card-outline">
+    <div class="card card-primary card-outline shadow">
       <div class="card-header">
         <h3 class="card-title"><i class="fas fa-list mr-1"></i> Listado de Usuarios</h3>
         <div class="card-tools ml-auto">
-          <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modal-agregarUsuario">
+          <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#modal-agregarUsuario">
             <i class="fas fa-user-plus mr-1"></i> Agregar Usuario
           </button>
         </div>
@@ -83,7 +86,7 @@
 
       <div class="card-body">
         <table id="tblUsuarios" class="table table-bordered table-striped dt-responsive nowrap" style="width:100%">
-          <thead>
+          <thead class="bg-primary text-white">
             <tr>
               <th>ID</th>
               <th>Nombre</th>
@@ -302,6 +305,17 @@ MODAL: EDITAR USUARIO
                   <span class="input-group-text"><i class="fas fa-phone"></i></span>
                 </div>
                 <input type="text" class="form-control" id="editarTelefono">
+              </div>
+            </div>
+
+            <!-- Nueva Contraseña Opcional (RF-N10 BCrypt) -->
+            <div class="col-md-12 form-group mb-0">
+              <label for="editarPassword">Nueva Contraseña <small class="text-muted">(Opcional — deje en blanco para conservar la actual)</small></label>
+              <div class="input-group">
+                <div class="input-group-prepend">
+                  <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                </div>
+                <input type="password" class="form-control" id="editarPassword" placeholder="Ingrese nueva contraseña si desea actualizarla">
               </div>
             </div>
 
