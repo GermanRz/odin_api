@@ -1,279 +1,113 @@
+<!-- Content Header (Encabezado de la página) -->
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1><i class="fas fa-building mr-2"></i> Gestión de Dependencias</h1>
+        <p class="text-muted mb-0">
+          RF-40 · RF-41 · RNF-14 — Administre las dependencias y unidades administrativas registradas en el sistema.
+        </p>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="inicio"><i class="fas fa-home mr-1"></i> Inicio</a></li>
+          <li class="breadcrumb-item active">Dependencias</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
 
+<!-- Main content -->
+<section class="content">
+  <div class="container-fluid">
 
-    <!-- Content Header (Page header) -->
-    <section class="content-header">
-        <div class="container-fluid">
-
-            <div class="row mb-2">
-
-                <div class="col-sm-6">
-                    <h1>Dependencias</h1>
-                    <p class="text-muted mb-0">
-                        Administra las dependencias registradas en el sistema.
-                    </p>
-                </div>
-
-                <div class="col-sm-6">
-
-                    <ol class="breadcrumb float-sm-right">
-
-                        <li class="breadcrumb-item">
-                            <a href="dependenciasForm" class="btn btn-primary">
-                                <i class="fas fa-plus"></i>
-                                Nueva Dependencia
-                            </a>
-                        </li>
-
-                    </ol>
-
-                </div>
-
-            </div>
-
+    <!-- Tarjetas de métricas informativas (Actualizadas asíncronamente vía API REST) -->
+    <div class="row">
+      <div class="col-lg-4 col-sm-6 col-12">
+        <div class="small-box bg-info">
+          <div class="inner">
+            <h3 id="kpiTotalDependencias">--</h3>
+            <p>Total de dependencias</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-building"></i>
+          </div>
         </div>
-    </section>
-
-
-    <!-- Main content -->
-    <section class="content">
-
-        <div class="container-fluid">
-
-            <div class="card card-primary card-outline shadow">
-
-
-                <div class="card-header">
-
-                    <h3 class="card-title">
-                        <i class="fas fa-building mr-2"></i>
-                        Gestión de Dependencias
-                    </h3>
-
-                </div>
-
-
-                <div class="card-body">
-
-
-                    <table id="example1" class="table table-bordered table-hover table-striped">
-
-
-                        <thead class="bg-primary">
-
-                            <tr>
-                                <th width="80">ID</th>
-                                <th>Nombre</th>
-                                <th width="180">Código</th>
-                                <th width="140" class="text-center">Estado</th>
-                                <th width="250" class="text-center">Acciones</th>
-                            </tr>
-
-                        </thead>
-
-
-
-                        <tbody>
-
-
-                            <tr>
-
-
-                                <td>
-                                    <span class="badge badge-secondary">
-                                        1
-                                    </span>
-                                </td>
-
-
-                                <td>
-                                    Talento Humano
-                                </td>
-
-
-                                <td>
-
-                                    <span class="badge badge-info">
-                                        TH001
-                                    </span>
-
-                                </td>
-
-
-                                <td class="text-center">
-
-                                    <span class="badge badge-success">
-                                        Activa
-                                    </span>
-
-                                </td>
-
-
-                                <td class="text-center">
-
-
-                                    <!-- Editar -->
-                                    <a href="dependenciasForm?id=1" 
-                                       class="btn btn-info btn-sm"
-                                       title="Editar">
-
-                                        <i class="fas fa-edit"></i>
-
-                                    </a>
-
-
-                                    <!-- Activar -->
-                                    <button class="btn btn-success btn-sm" 
-                                            title="Activar">
-
-                                        <i class="fas fa-check"></i>
-
-                                    </button>
-
-
-                                    <!-- Desactivar -->
-                                    <button class="btn btn-warning btn-sm" 
-                                            title="Desactivar">
-
-                                        <i class="fas fa-power-off"></i>
-
-                                    </button>
-
-
-                                    <!-- Eliminar -->
-                                    <button class="btn btn-danger btn-sm" 
-                                            title="Eliminar">
-
-                                        <i class="fas fa-trash"></i>
-
-                                    </button>
-
-
-                                </td>
-
-
-                            </tr>
-
-
-
-
-
-                            <tr>
-
-
-                                <td>
-                                    <span class="badge badge-secondary">
-                                        2
-                                    </span>
-                                </td>
-
-
-                                <td>
-                                    Contabilidad
-                                </td>
-
-
-                                <td>
-
-                                    <span class="badge badge-info">
-                                        CON002
-                                    </span>
-
-                                </td>
-
-
-                                <td class="text-center">
-
-
-                                    <span class="badge badge-danger">
-                                        Inactiva
-                                    </span>
-
-
-                                </td>
-
-
-                                <td class="text-center">
-
-
-                                    <!-- Editar -->
-                                    <a href="dependenciasForm?id=2" 
-                                       class="btn btn-info btn-sm"
-                                       title="Editar">
-
-                                        <i class="fas fa-edit"></i>
-
-                                    </a>
-
-
-
-                                    <!-- Activar -->
-                                    <button class="btn btn-success btn-sm" 
-                                            title="Activar">
-
-                                        <i class="fas fa-check"></i>
-
-                                    </button>
-
-
-
-                                    <!-- Desactivar -->
-                                    <button class="btn btn-warning btn-sm" 
-                                            title="Desactivar">
-
-                                        <i class="fas fa-power-off"></i>
-
-                                    </button>
-
-
-
-                                    <!-- Eliminar -->
-                                    <button class="btn btn-danger btn-sm" 
-                                            title="Eliminar">
-
-                                        <i class="fas fa-trash"></i>
-
-                                    </button>
-
-
-                                </td>
-
-
-                            </tr>
-
-
-                        </tbody>
-
-
-
-
-                        <tfoot>
-
-                            <tr>
-
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Código</th>
-                                <th class="text-center">Estado</th>
-                                <th class="text-center">Acciones</th>
-
-                            </tr>
-
-                        </tfoot>
-
-
-                    </table>
-
-
-                </div>
-
-
-            </div>
-
-
+      </div>
+
+      <div class="col-lg-4 col-sm-6 col-12">
+        <div class="small-box bg-success">
+          <div class="inner">
+            <h3 id="kpiDependenciasActivas">--</h3>
+            <p>Dependencias activas</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
         </div>
+      </div>
 
+      <div class="col-lg-4 col-sm-12 col-12">
+        <div class="small-box bg-warning">
+          <div class="inner">
+            <h3 id="kpiDependenciasInactivas">--</h3>
+            <p>Dependencias inactivas</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-ban"></i>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    </section>
-    <!-- /.content -->
+    <!-- TARJETA PRINCIPAL CON TABLA VACÍA PARA DATATABLES AJAX -->
+    <div class="card card-primary card-outline shadow">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h3 class="card-title">
+          <i class="fas fa-building mr-2"></i>
+          Listado de Dependencias Institucionales
+        </h3>
+        <div class="card-tools ml-auto">
+          <a href="dependenciasForm" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus mr-1"></i> Nueva Dependencia
+          </a>
+        </div>
+      </div>
 
+      <div class="card-body">
+        <table id="tblDependencias" class="table table-bordered table-hover table-striped dt-responsive nowrap" style="width:100%">
+          <thead class="bg-primary text-white">
+            <tr>
+              <th width="70">ID</th>
+              <th width="140">Código / Sigla</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th width="120" class="text-center">Usuarios</th>
+              <th width="120" class="text-center">Estado</th>
+              <th width="200" class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- El contenido se inyecta dinámicamente vía AJAX desde vistas/js/dependencias.js -->
+          </tbody>
+          <tfoot>
+            <tr>
+              <th>ID</th>
+              <th>Código / Sigla</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th class="text-center">Usuarios</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
 
+  </div>
+</section>
+
+<!-- Inclusión modular del script del cliente -->
+<script src="vistas/js/dependencias.js"></script>

@@ -7,12 +7,12 @@
   <!-- /.login-logo -->
   <div class="card card-outline card-primary">
     <div class="card-body login-card-body">
-      <p class="login-box-msg">Ingresa al sistema para iniciar sesión</p>
+      <p class="login-box-msg">Ingresa con tu correo, identificación o nombre</p>
 
       <form method="post">
 
         <div class="input-group mb-3">
-          <input type="text" class="form-control" placeholder="Usuario / Identificación" name="ingUsuario" required>
+          <input type="text" class="form-control" placeholder="Correo, Identificación o Nombre" name="ingUsuario" required>
           <div class="input-group-append">
             <div class="input-group-text">
               <span class="fas fa-user"></span>
