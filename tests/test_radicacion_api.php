@@ -15,6 +15,7 @@ class TestRadicacionApi
         self::testValidacionAsuntoRequerido();
         self::testValidacionAdjuntoRequerido();
         self::testBuscarRemitenteVacio();
+        self::testObtenerEncargadoDependencia();
         self::testRadicarExitosoConDocumento();
 
         echo "\n";
@@ -102,6 +103,19 @@ class TestRadicacionApi
         );
     }
 
+    private static function testObtenerEncargadoDependencia(): void
+    {
+        $salida = self::ejecutarWorker("encargado_dep", "1");
+        $json = json_decode(trim($salida), true);
+
+        $esValido = is_array($json) && in_array($json["status"] ?? 0, [200, 404, 500], true);
+
+        self::assert(
+            $esValido,
+            "Endpoint de consulta de encargado por dependencia emite respuesta JSON estructurada"
+        );
+    }
+
     private static function testRadicarExitosoConDocumento(): void
     {
         $tmpPdf = tempnam(sys_get_temp_dir(), "api_pdf_test_");
@@ -136,6 +150,11 @@ class TestRadicacionApi
 
             case "remitente_vacio":
                 ControladorRadicados::ctrBuscarRemitente("");
+                break;
+
+            case "encargado_dep":
+                $idDep = isset($args[2]) ? (int)$args[2] : 1;
+                ControladorRadicados::ctrObtenerResponsableDependencia($idDep);
                 break;
 
             case "asunto_req":

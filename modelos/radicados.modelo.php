@@ -380,15 +380,29 @@ class ModeloRadicados
         $db = Conexion::conectar();
 
         $stmtTramites = $db->prepare(
-            "SELECT id_tramite, nombre, descripcion, dias_respuesta, prioridad_default
-             FROM tramites WHERE activo = 1 ORDER BY nombre ASC"
+            "SELECT t.id_tramite, t.nombre, t.descripcion, t.dias_respuesta, t.prioridad_default,
+                    t.id_dependencia_responsable,
+                    COALESCE(t.id_usuario_responsable, d.id_usuario_responsable) AS id_usuario_responsable,
+                    u.nombre AS nombre_responsable
+             FROM tramites t
+             LEFT JOIN dependencias d ON d.id_dependencia = t.id_dependencia_responsable
+             LEFT JOIN usuarios u ON u.id_usuario = COALESCE(t.id_usuario_responsable, d.id_usuario_responsable)
+             WHERE t.activo = 1 ORDER BY t.nombre ASC"
         );
         $stmtTramites->execute();
         $tramites = $stmtTramites->fetchAll(PDO::FETCH_ASSOC);
 
         $stmtDeps = $db->prepare(
-            "SELECT id_dependencia, nombre, codigo, tipo
-             FROM dependencias WHERE estado = 'Activo' ORDER BY nombre ASC"
+            "SELECT d.id_dependencia, d.nombre, d.codigo, d.tipo,
+                    d.id_usuario_responsable AS id_responsable,
+                    u.nombre AS nombre_responsable,
+                    u.correo AS correo_responsable,
+                    COALESCE(r.nombre, 'Encargado del área') AS rol_responsable
+             FROM dependencias d
+             LEFT JOIN usuarios u ON u.id_usuario = d.id_usuario_responsable
+             LEFT JOIN roles r ON r.id_rol = u.id_rol
+             WHERE d.estado = 'Activo'
+             ORDER BY d.nombre ASC"
         );
         $stmtDeps->execute();
         $dependencias = $stmtDeps->fetchAll(PDO::FETCH_ASSOC);
@@ -420,6 +434,55 @@ class ModeloRadicados
             "series"       => $series,
             "subseries"    => $subseries
         ];
+    }
+
+    /**
+     * Obtiene el usuario encargado del área (activo) asignado a una dependencia.
+     * Retorna los datos del usuario o null si no existe.
+     *
+     * @param int $idDependencia ID de la dependencia.
+     * @return array|null Datos del encargado o null.
+     */
+    public static function mdlObtenerEncargadoDependencia(int $idDependencia): ?array
+    {
+        try {
+            $db = Conexion::conectar();
+            $stmt = $db->prepare(
+                "SELECT u.id_usuario, u.nombre, u.correo, u.id_dependencia,
+                        COALESCE(r.nombre, 'Encargado del área') AS rol
+                 FROM dependencias d
+                 JOIN usuarios u ON u.id_usuario = d.id_usuario_responsable
+                 LEFT JOIN roles r ON r.id_rol = u.id_rol
+                 WHERE d.id_dependencia = :id_dep AND u.estado = 'Activo'
+                 LIMIT 1"
+            );
+            $stmt->bindParam(":id_dep", $idDependencia, PDO::PARAM_INT);
+            $stmt->execute();
+            $encargado = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($encargado) {
+                return $encargado;
+            }
+
+            // Fallback: si no tiene id_usuario_responsable asignado, buscar usuario activo en la dependencia
+            $stmtFallback = $db->prepare(
+                "SELECT u.id_usuario, u.nombre, u.correo, u.id_dependencia,
+                        COALESCE(r.nombre, 'Encargado del área') AS rol
+                 FROM usuarios u
+                 LEFT JOIN roles r ON r.id_rol = u.id_rol
+                 WHERE u.id_dependencia = :id_dep AND u.estado = 'Activo'
+                 ORDER BY u.id_rol ASC, u.id_usuario ASC
+                 LIMIT 1"
+            );
+            $stmtFallback->bindParam(":id_dep", $idDependencia, PDO::PARAM_INT);
+            $stmtFallback->execute();
+            $fallback = $stmtFallback->fetch(PDO::FETCH_ASSOC);
+
+            return $fallback ?: null;
+        } catch (Exception $e) {
+            error_log("Error en ModeloRadicados::mdlObtenerEncargadoDependencia: " . $e->getMessage());
+            return null;
+        }
     }
 
     /**

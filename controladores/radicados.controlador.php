@@ -51,7 +51,19 @@ class ControladorRadicados
                                 : (!empty($post["dependenciaResponsable"]) 
                                     ? (int)$post["dependenciaResponsable"] 
                                     : (!empty($post["id_dependencia"]) ? (int)$post["id_dependencia"] : null));
-            $idUsuario     = !empty($post["responsable"]) ? (int)$post["responsable"] : (!empty($post["id_usuario"]) ? (int)$post["id_usuario"] : 1);
+
+            // Regla de Negocio: Los radicados se dirigen a dependencias; se asigna automáticamente al encargado del área
+            $idUsuario = 1;
+            if (!empty($idDependencia)) {
+                $encargado = ModeloRadicados::mdlObtenerEncargadoDependencia($idDependencia);
+                if ($encargado && !empty($encargado["id_usuario"])) {
+                    $idUsuario = (int)$encargado["id_usuario"];
+                } elseif (!empty($post["responsable"])) {
+                    $idUsuario = (int)$post["responsable"];
+                }
+            } elseif (!empty($post["responsable"])) {
+                $idUsuario = (int)$post["responsable"];
+            }
 
             $fechaLimite = !empty($post["fechaLimite"]) ? trim($post["fechaLimite"]) : (!empty($post["fecha_limite"]) ? trim($post["fecha_limite"]) : null);
 
@@ -251,8 +263,23 @@ class ControladorRadicados
     }
 
     /**
-     * Retorna los catálogos de soporte para el formulario de radicación.
+     * Endpoint REST: Obtiene el encargado del área asignado a una dependencia.
      */
+    public static function ctrObtenerResponsableDependencia(int $idDependencia): void
+    {
+        try {
+            $encargado = ModeloRadicados::mdlObtenerEncargadoDependencia($idDependencia);
+            if ($encargado) {
+                RespuestaHelper::exito($encargado, "Encargado de la dependencia obtenido exitosamente");
+            } else {
+                RespuestaHelper::error("No se encontró ningún encargado para esta dependencia", 404);
+            }
+        } catch (Exception $e) {
+            error_log("Error en ControladorRadicados::ctrObtenerResponsableDependencia: " . $e->getMessage());
+            RespuestaHelper::error("Error al consultar el encargado de la dependencia", 500);
+        }
+    }
+
     public static function ctrCatalogos(): void
     {
         try {

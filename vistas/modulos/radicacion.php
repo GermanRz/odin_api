@@ -153,18 +153,17 @@
             <div class="card-body">
               <div class="row">
                 <div class="col-md-6 form-group">
-                  <label for="responsable"><i class="fas fa-user-tie mr-1"></i>Responsable <span class="text-danger">*</span></label>
-                  <select class="form-control" id="responsable" name="responsable" required>
-                    <option value="">Seleccione un responsable...</option>
-                  </select>
-                  <div class="invalid-feedback">Este campo es requerido</div>
-                </div>
-                <div class="col-md-6 form-group">
-                  <label for="dependenciaResponsable"><i class="fas fa-building mr-1"></i>Dependencia responsable <span class="text-danger">*</span></label>
+                  <label for="dependenciaResponsable"><i class="fas fa-building mr-1"></i>Dependencia asignada <span class="text-danger">*</span></label>
                   <select class="form-control" id="dependenciaResponsable" name="dependenciaResponsable" required>
                     <option value="">Seleccione una dependencia...</option>
                   </select>
                   <div class="invalid-feedback">Este campo es requerido</div>
+                </div>
+                <div class="col-md-6 form-group">
+                  <label for="responsableVisible"><i class="fas fa-user-shield mr-1"></i>Encargado del área (Responsable)</label>
+                  <input type="text" class="form-control bg-light" id="responsableVisible" placeholder="Se asignará automáticamente al seleccionar la dependencia" readonly>
+                  <input type="hidden" id="responsable" name="responsable" value="">
+                  <small class="form-text text-muted"><i class="fas fa-lock mr-1 text-secondary"></i>Asignado automáticamente al encargado del área (no editable)</small>
                 </div>
               </div>
 
@@ -398,6 +397,9 @@
 
                 <dt class="col-sm-5"><i class="fas fa-building mr-1"></i>Dependencia:</dt>
                 <dd class="col-sm-7"><span class="resumen-dependencia text-muted">—</span></dd>
+
+                <dt class="col-sm-5"><i class="fas fa-user-shield mr-1"></i>Encargado:</dt>
+                <dd class="col-sm-7"><span class="resumen-responsable text-muted">—</span></dd>
 
                 <dt class="col-sm-5"><i class="fas fa-list mr-1"></i>Serie:</dt>
                 <dd class="col-sm-7"><span class="resumen-serie text-muted">—</span></dd>

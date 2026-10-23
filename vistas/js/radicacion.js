@@ -59,28 +59,17 @@ function inicializarCatalogos() {
             console.error("Error al cargar catálogos maestros:", err);
         });
 
-    // 2. Cargar Usuarios para Asignación Inicial
-    fetch(API_USUARIOS_URL)
-        .then(r => r.json())
-        .then(res => {
-            if (res.success && Array.isArray(res.data)) {
-                const $selectResp = $("#responsable");
-                $selectResp.empty().append('<option value="">Seleccione un responsable...</option>');
-                res.data.forEach(u => {
-                    $selectResp.append(`<option value="${u.id_usuario}">${u.nombre} (${u.rol || 'Funcionario'})</option>`);
-                });
-            }
-        })
-        .catch(err => {
-            console.error("Error al cargar usuarios:", err);
-        });
+    // 2. Regla de negocio: Radicados se asignan a dependencias y su responsable se autollena automáticamente
 }
 
 function poblarSelectTramites(tramites) {
     const $select = $("#tramite");
     $select.empty().append('<option value="">Seleccione un trámite...</option>');
     tramites.forEach(t => {
-        $select.append(`<option value="${t.id_tramite}" data-dias="${t.dias_respuesta || 15}" data-prio="${t.prioridad_default || 'MEDIA'}">${t.nombre}</option>`);
+        $select.append(`<option value="${t.id_tramite}" 
+                                data-dias="${t.dias_respuesta || 15}" 
+                                data-prio="${t.prioridad_default || 'MEDIA'}"
+                                data-dep="${t.id_dependencia_responsable || ''}">${t.nombre}</option>`);
     });
 
     $select.on("change", function() {
@@ -89,21 +78,91 @@ function poblarSelectTramites(tramites) {
         if (prioridadDef) {
             $("#prioridad").val(prioridadDef.toLowerCase()).trigger("change");
         }
+
+        // Asignación por defecto de la dependencia y responsable del trámite
+        const depId = selectedOpt.data("dep");
+        if (depId) {
+            $("#dependenciaResponsable").val(depId);
+            $("#dependenciaDestino").val(depId);
+            asignarEncargadoPorDependencia(depId);
+        }
     });
 }
 
+let catalogoDependencias = [];
+
 function poblarSelectDependencias(dependencias) {
+    catalogoDependencias = dependencias || [];
     const $dest = $("#dependenciaDestino");
     const $resp = $("#dependenciaResponsable");
 
     $dest.empty().append('<option value="">Seleccione una dependencia...</option>');
     $resp.empty().append('<option value="">Seleccione una dependencia...</option>');
 
-    dependencias.forEach(d => {
+    catalogoDependencias.forEach(d => {
         const optionHtml = `<option value="${d.id_dependencia}">[${d.codigo || 'DEP'}] ${d.nombre}</option>`;
         $dest.append(optionHtml);
         $resp.append(optionHtml);
     });
+
+    // Al seleccionar dependencia se autollena el responsable encargado y no permite editarlo
+    $("#dependenciaResponsable, #dependenciaDestino").off("change.encargado").on("change.encargado", function() {
+        const depId = $(this).val();
+        $("#dependenciaResponsable").val(depId);
+        $("#dependenciaDestino").val(depId);
+
+        if (!depId) {
+            $("#responsable").val("");
+            $("#responsableVisible").val("");
+            actualizarResumen();
+            return;
+        }
+
+        asignarEncargadoPorDependencia(depId);
+    });
+}
+
+function asignarEncargadoPorDependencia(idDependencia) {
+    const dep = catalogoDependencias.find(d => String(d.id_dependencia) === String(idDependencia));
+
+    if (dep && dep.id_responsable && dep.nombre_responsable) {
+        const rolTexto = dep.rol_responsable ? ` (${dep.rol_responsable})` : "";
+        $("#responsable").val(dep.id_responsable);
+        $("#responsableVisible").val(`${dep.nombre_responsable}${rolTexto}`);
+        resaltarResponsableAutollenado();
+        actualizarResumen();
+        return;
+    }
+
+    // Consulta complementaria a la API RESTful
+    fetch(`api/dependencias/${idDependencia}/responsable`)
+        .then(r => r.json())
+        .then(res => {
+            if (res.success && res.data) {
+                const u = res.data;
+                const rolTexto = u.rol ? ` (${u.rol})` : "";
+                $("#responsable").val(u.id_usuario);
+                $("#responsableVisible").val(`${u.nombre}${rolTexto}`);
+                resaltarResponsableAutollenado();
+            } else {
+                $("#responsable").val("");
+                $("#responsableVisible").val("Sin encargado asignado");
+            }
+            actualizarResumen();
+        })
+        .catch(() => {
+            $("#responsable").val("");
+            $("#responsableVisible").val("Sin encargado asignado");
+            actualizarResumen();
+        });
+}
+
+function resaltarResponsableAutollenado() {
+    const $respVis = $("#responsableVisible");
+    $respVis.addClass("border-success text-dark font-weight-bold");
+    setTimeout(() => {
+        $respVis.removeClass("border-success text-dark font-weight-bold");
+    }, 2000);
 }
 
 function poblarSelectEstados(estados) {
@@ -478,8 +537,11 @@ function actualizarResumen() {
         $(".resumen-solicitante").text(solTexto);
     }
 
-    const depText = $("#dependenciaDestino option:selected").text();
+    const depText = $("#dependenciaResponsable option:selected").text() || $("#dependenciaDestino option:selected").text();
     $(".resumen-dependencia").text(depText && !depText.includes("Seleccione") ? depText : "—");
+
+    const respText = $("#responsableVisible").val();
+    $(".resumen-responsable").text(respText && !respText.includes("Se asignará") ? respText : "—");
 
     const serieText = $("#serieDocumental option:selected").text();
     $(".resumen-serie").text(serieText && !serieText.includes("Seleccione") ? serieText : "—");
@@ -511,6 +573,10 @@ function limpiarFormulario() {
     $("#estadoInicialVisible").val("Pendiente");
     ultimoDocumentoBuscado = "";
     $("#remitenteFeedback").empty();
+    $("#dependenciaResponsable").val("");
+    $("#dependenciaDestino").val("");
+    $("#responsable").val("");
+    $("#responsableVisible").val("");
     uploadedFiles = [];
     renderizarListaArchivos();
     $("#radicacionAnonima").prop("checked", false).trigger("change");

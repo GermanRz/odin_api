@@ -156,6 +156,11 @@ if ($recurso === "roles" && $metodo === "GET") {
 }
 
 if ($recurso === "dependencias" && $metodo === "GET") {
+    // GET /api/dependencias/{id}/responsable -> Encargado del área de la dependencia
+    if (is_numeric($param1) && $param2 === "responsable") {
+        ControladorRadicados::ctrObtenerResponsableDependencia((int)$param1);
+    }
+
     $dependencias = ModeloDependencias::mdlMostrarDependencias("dependencias");
     RespuestaHelper::exito($dependencias, "Listado de dependencias obtenido correctamente");
 }
