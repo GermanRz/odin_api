@@ -17,10 +17,13 @@ require_once __DIR__ . "/../modelos/conexion.php";
 require_once __DIR__ . "/../modelos/usuarios.modelo.php";
 require_once __DIR__ . "/../modelos/roles.modelo.php";
 require_once __DIR__ . "/../modelos/dependencias.modelo.php";
+require_once __DIR__ . "/../modelos/tramites.modelo.php";
+require_once __DIR__ . "/../modelos/radicados.modelo.php";
+
 require_once __DIR__ . "/../controladores/usuarios.controlador.php";
 require_once __DIR__ . "/../controladores/roles.controlador.php";
 require_once __DIR__ . "/../controladores/dependencias.controlador.php";
-require_once __DIR__ . "/../modelos/radicados.modelo.php";
+require_once __DIR__ . "/../controladores/tramites.controlador.php";
 require_once __DIR__ . "/../controladores/radicados.controlador.php";
 
 // 2. Cabeceras CORS y configuración HTTP
@@ -118,17 +121,80 @@ if ($recurso === "radicados") {
         ControladorRadicados::ctrObtener((int)$param1);
     }
 
+    // POST /api/radicados/lote -> Acciones masivas sobre múltiples radicados
+    if ($metodo === "POST" && $param1 === "lote") {
+        ControladorRadicados::ctrAccionLote($body);
+    }
+
     // POST /api/radicados -> Radicar documento con adjuntos
     if ($metodo === "POST" && $param1 === null) {
         $payload = !empty($_POST) ? $_POST : $body;
         ControladorRadicados::ctrRadicar($payload, $_FILES);
     }
 
+    // PATCH /api/radicados/{id}/asignar -> Asignar responsable individual
+    if ($metodo === "PATCH" && is_numeric($param1) && $param2 === "asignar") {
+        ControladorRadicados::ctrAsignar((int)$param1, $body);
+    }
+
+    // PATCH /api/radicados/{id}/estado -> Cambiar estado individual
+    if ($metodo === "PATCH" && is_numeric($param1) && $param2 === "estado") {
+        ControladorRadicados::ctrCambiarEstado((int)$param1, $body);
+    }
+
+    // POST /api/radicados/{id}/reasignar -> Reasignar usuario y dependencia
+    if ($metodo === "POST" && is_numeric($param1) && $param2 === "reasignar") {
+        ControladorRadicados::ctrReasignar((int)$param1, $body);
+    }
+
+    // PATCH /api/radicados/{id}/cerrar -> Cerrar y finalizar radicado
+    if ($metodo === "PATCH" && is_numeric($param1) && $param2 === "cerrar") {
+        ControladorRadicados::ctrCerrar((int)$param1, $body);
+    }
+
     RespuestaHelper::error("Método no permitido para este recurso", 405);
 }
 
 /*=============================================
-RECURSOS AUXILIARES: ROLES, DEPENDENCIAS, TRAMITES, ESTADOS
+RECURSO: TRAMITES (/api/tramites)
+=============================================*/
+if ($recurso === "tramites") {
+
+    // GET /api/tramites/stats -> Métricas e indicadores cuantitativos
+    if ($metodo === "GET" && $param1 === "stats") {
+        ControladorTramites::ctrEstadisticas();
+    }
+
+    // GET /api/tramites -> Listado completo del catálogo
+    if ($metodo === "GET" && $param1 === null) {
+        ControladorTramites::ctrListar();
+    }
+
+    // GET /api/tramites/{id} -> Detalle de un trámite
+    if ($metodo === "GET" && is_numeric($param1)) {
+        ControladorTramites::ctrObtener((int)$param1);
+    }
+
+    // POST /api/tramites -> Crear nuevo tipo de trámite
+    if ($metodo === "POST" && $param1 === null) {
+        ControladorTramites::ctrCrear($body);
+    }
+
+    // PUT /api/tramites/{id} -> Actualizar trámite
+    if ($metodo === "PUT" && is_numeric($param1) && $param2 === null) {
+        ControladorTramites::ctrActualizar((int)$param1, $body);
+    }
+
+    // PATCH /api/tramites/{id}/estado -> Alternar activo / inactivo
+    if ($metodo === "PATCH" && is_numeric($param1) && $param2 === "estado") {
+        ControladorTramites::ctrCambiarEstado((int)$param1, $body);
+    }
+
+    RespuestaHelper::error("Método no permitido para este recurso", 405);
+}
+
+/*=============================================
+RECURSOS AUXILIARES: ROLES, DEPENDENCIAS, ESTADOS, SERIES, SUBSERIES
 =============================================*/
 if ($recurso === "roles" && $metodo === "GET") {
     $roles = ModeloRoles::mdlMostrarRoles("roles");
@@ -138,11 +204,6 @@ if ($recurso === "roles" && $metodo === "GET") {
 if ($recurso === "dependencias" && $metodo === "GET") {
     $dependencias = ModeloDependencias::mdlMostrarDependencias("dependencias");
     RespuestaHelper::exito($dependencias, "Listado de dependencias obtenido correctamente");
-}
-
-if ($recurso === "tramites" && $metodo === "GET") {
-    $catalogos = ModeloRadicados::mdlObtenerCatalogos();
-    RespuestaHelper::exito($catalogos["tramites"], "Listado de trámites obtenido correctamente");
 }
 
 if ($recurso === "estados" && $metodo === "GET") {

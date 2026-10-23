@@ -1,19 +1,19 @@
-<?php
+﻿<?php
 
 require_once __DIR__ . "/conexion.php";
 
 /**
- * Modelo de Persistencia para Radicados y Documentos — Proyecto ODIN
+ * Modelo de Persistencia para Radicados y Documentos â€” Proyecto ODIN
  * 
- * Gestiona la persistencia atómica mediante PDO con sentencias preparadas,
- * generación concurrente de consecutivos por vigencia anual y registro
+ * Gestiona la persistencia atÃ³mica mediante PDO con sentencias preparadas,
+ * generaciÃ³n concurrente de consecutivos por vigencia anual y registro
  * de metadatos documentales y de trazabilidad.
  */
 class ModeloRadicados
 {
     /**
-     * Genera de forma atómica y concurrente el siguiente número de radicado
-     * respetando la vigencia anual y el prefijo según el tipo de radicación:
+     * Genera de forma atÃ³mica y concurrente el siguiente nÃºmero de radicado
+     * respetando la vigencia anual y el prefijo segÃºn el tipo de radicaciÃ³n:
      * - ENTRADA -> E-AAAA-000001
      * - SALIDA  -> S-AAAA-000001
      * - INTERNO -> INT-AAAA-000001
@@ -38,7 +38,7 @@ class ModeloRadicados
                 break;
         }
 
-        // Bloqueo y actualización atómica en radicado_consecutivos
+        // Bloqueo y actualizaciÃ³n atÃ³mica en radicado_consecutivos
         $stmtUpdate = $db->prepare(
             "INSERT INTO radicado_consecutivos (anio, prefijo, consecutivo)
              VALUES (:anio, :prefijo, 1)
@@ -64,8 +64,8 @@ class ModeloRadicados
     }
 
     /**
-     * Persiste de forma atómica un radicado, sus datos de remitente (si aplica),
-     * sus documentos adjuntos procesados y el registro de bitácora/historial.
+     * Persiste de forma atÃ³mica un radicado, sus datos de remitente (si aplica),
+     * sus documentos adjuntos procesados y el registro de bitÃ¡cora/historial.
      */
     public static function mdlRadicarDocumento(
         array $datosRadicado,
@@ -76,10 +76,10 @@ class ModeloRadicados
         $db->beginTransaction();
 
         try {
-            // 1. Manejo del Remitente Externo (si no es anónimo)
+            // 1. Manejo del Remitente Externo (si no es anÃ³nimo)
             $idRemitente = null;
             $esAnonimo = !empty($datosRadicado["es_anonimo"]);
-            $remitenteTexto = $esAnonimo ? "ANÓNIMO (Ley de Transparencia)" : trim($datosRadicado["remitente"] ?? "Anónimo");
+            $remitenteTexto = $esAnonimo ? "ANÃ“NIMO (Ley de Transparencia)" : trim($datosRadicado["remitente"] ?? "AnÃ³nimo");
 
             if (!$esAnonimo && $datosRemitente && !empty($datosRemitente["num_identificacion"])) {
                 $tipoDoc = strtoupper(trim($datosRemitente["tipo_identificacion"] ?? "CC"));
@@ -124,7 +124,7 @@ class ModeloRadicados
                 }
             }
 
-            // 2. Generación del número de radicado con consecutivo anual
+            // 2. GeneraciÃ³n del nÃºmero de radicado con consecutivo anual
             $tipoRadicado = strtoupper(trim($datosRadicado["tipo_radicado"] ?? "ENTRADA"));
             if (!in_array($tipoRadicado, ["ENTRADA", "SALIDA", "INTERNO"], true)) {
                 $tipoRadicado = "ENTRADA";
@@ -132,7 +132,7 @@ class ModeloRadicados
 
             $numeroRadicado = self::mdlGenerarNumeroRadicado($tipoRadicado, $db);
 
-            // 3. Normalizar parámetros para las restricciones CHECK de BD
+            // 3. Normalizar parÃ¡metros para las restricciones CHECK de BD
             $prioridad = strtoupper(trim($datosRadicado["prioridad"] ?? "MEDIA"));
             if (!in_array($prioridad, ["BAJA", "MEDIA", "ALTA", "URGENTE"], true)) {
                 $prioridad = "MEDIA";
@@ -159,7 +159,7 @@ class ModeloRadicados
             $idSerie        = !empty($datosRadicado["id_serie"]) ? (int)$datosRadicado["id_serie"] : null;
             $idSubserie     = !empty($datosRadicado["id_subserie"]) ? (int)$datosRadicado["id_subserie"] : null;
 
-            // 4. Inserción en tabla radicados
+            // 4. InserciÃ³n en tabla radicados
             $sqlRadicado = "INSERT INTO radicados (
                 numero_radicado, id_tramite, id_estado, id_dependencia, id_usuario,
                 id_remitente, remitente, asunto, fecha_radicado, tipo_radicado,
@@ -196,7 +196,7 @@ class ModeloRadicados
 
             $idRadicado = (int)$db->lastInsertId();
 
-            // 5. Inserción de documentos asociados
+            // 5. InserciÃ³n de documentos asociados
             $docsInsertados = [];
             $sqlDoc = "INSERT INTO documentos (
                 id_radicado, tamano, nombre_archivo, ruta_archivo, tipo,
@@ -230,7 +230,7 @@ class ModeloRadicados
             ) VALUES (
                 :rad_id, :usuario, 'radicacion', :desc, :fecha
             )";
-            $descHistorial = "Radicación inicial generada exitosamente (" . count($docsInsertados) . " documento(s) adjunto(s)).";
+            $descHistorial = "RadicaciÃ³n inicial generada exitosamente (" . count($docsInsertados) . " documento(s) adjunto(s)).";
             $stmtHist = $db->prepare($sqlHistorial);
             $stmtHist->bindParam(":rad_id",  $idRadicado,     PDO::PARAM_INT);
             $stmtHist->bindParam(":usuario", $idUsuario,       PDO::PARAM_INT);
@@ -261,7 +261,7 @@ class ModeloRadicados
      * Si el usuario es Administrador o no se especifica usuario, retorna todos los radicados.
      * Si es un usuario regular, filtra exclusivamente los radicados asociados a su id_usuario.
      * 
-     * @param int|null $idUsuario Identificador del usuario en sesión.
+     * @param int|null $idUsuario Identificador del usuario en sesiÃ³n.
      * @param bool $esAdmin Bandera de rol administrador (true = ve todos los radicados).
      * @param array $filtros Filtros adicionales opcionales (id_estado, tipo_radicado, fecha).
      * @return array Listado de radicados con relaciones.
@@ -338,7 +338,7 @@ class ModeloRadicados
     }
 
     /**
-     * Consulta el detalle de un radicado específico por ID con sus documentos.
+     * Consulta el detalle de un radicado especÃ­fico por ID con sus documentos.
      */
     public static function mdlObtenerRadicadoPorId(int $idRadicado): ?array
     {
@@ -373,7 +373,7 @@ class ModeloRadicados
     }
 
     /**
-     * Obtiene los catálogos necesarios para alimentar el formulario de radicación.
+     * Obtiene los catÃ¡logos necesarios para alimentar el formulario de radicaciÃ³n.
      */
     public static function mdlObtenerCatalogos(): array
     {
@@ -419,6 +419,214 @@ class ModeloRadicados
             "estados"      => $estados,
             "series"       => $series,
             "subseries"    => $subseries
+        ];
+    }
+
+    /**
+     * Asigna un usuario responsable a un radicado y registra la trazabilidad en historial_radicado.
+     */
+    public static function mdlAsignarResponsable(int $idRadicado, int $idUsuario, int $idUsuarioModificador): bool
+    {
+        $db = Conexion::conectar();
+        try {
+            $db->beginTransaction();
+
+            $stmt = $db->prepare("UPDATE radicados SET id_usuario = :usuario WHERE id_radicado = :id");
+            $stmt->bindParam(":usuario", $idUsuario,    PDO::PARAM_INT);
+            $stmt->bindParam(":id",      $idRadicado,   PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmtHist = $db->prepare(
+                "INSERT INTO historial_radicado (id_radicado, id_usuario, accion, descripcion, fecha)
+                 VALUES (:id, :usuario_mod, 'asignacion', :desc, NOW())"
+            );
+            $desc = "AsignaciÃ³n de usuario responsable (ID: {$idUsuario})";
+            $stmtHist->bindParam(":id",          $idRadicado,            PDO::PARAM_INT);
+            $stmtHist->bindParam(":usuario_mod", $idUsuarioModificador,  PDO::PARAM_INT);
+            $stmtHist->bindParam(":desc",         $desc,                  PDO::PARAM_STR);
+            $stmtHist->execute();
+
+            $db->commit();
+            return true;
+        } catch (Exception $e) {
+            $db->rollBack();
+            error_log("Error en ModeloRadicados::mdlAsignarResponsable: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Actualiza el estado de un radicado y deja constancia en la bitÃ¡cora.
+     */
+    public static function mdlCambiarEstadoRadicado(int $idRadicado, int $idEstado, ?string $comentario, int $idUsuarioModificador): bool
+    {
+        $db = Conexion::conectar();
+        try {
+            $db->beginTransaction();
+
+            $stmt = $db->prepare("UPDATE radicados SET id_estado = :estado WHERE id_radicado = :id");
+            $stmt->bindParam(":estado", $idEstado,   PDO::PARAM_INT);
+            $stmt->bindParam(":id",     $idRadicado, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmtHist = $db->prepare(
+                "INSERT INTO historial_radicado (id_radicado, id_usuario, accion, descripcion, fecha)
+                 VALUES (:id, :usuario_mod, 'cambio_estado', :desc, NOW())"
+            );
+            $desc = "Cambio de estado a ID {$idEstado}." . ($comentario ? " ObservaciÃ³n: {$comentario}" : "");
+            $stmtHist->bindParam(":id",          $idRadicado,            PDO::PARAM_INT);
+            $stmtHist->bindParam(":usuario_mod", $idUsuarioModificador,  PDO::PARAM_INT);
+            $stmtHist->bindParam(":desc",         $desc,                  PDO::PARAM_STR);
+            $stmtHist->execute();
+
+            $db->commit();
+            return true;
+        } catch (Exception $e) {
+            $db->rollBack();
+            error_log("Error en ModeloRadicados::mdlCambiarEstadoRadicado: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Reasigna de forma atÃ³mica un radicado a un nuevo responsable y/o nueva dependencia.
+     */
+    public static function mdlReasignarRadicado(
+        int $idRadicado,
+        int $idUsuarioNuevo,
+        ?int $idDependenciaNueva,
+        ?string $comentario,
+        int $idUsuarioModificador
+    ): bool {
+        $db = Conexion::conectar();
+        try {
+            $db->beginTransaction();
+
+            if ($idDependenciaNueva) {
+                $stmt = $db->prepare("UPDATE radicados SET id_usuario = :usuario, id_dependencia = :dep WHERE id_radicado = :id");
+                $stmt->bindParam(":usuario", $idUsuarioNuevo,     PDO::PARAM_INT);
+                $stmt->bindParam(":dep",     $idDependenciaNueva, PDO::PARAM_INT);
+                $stmt->bindParam(":id",      $idRadicado,         PDO::PARAM_INT);
+            } else {
+                $stmt = $db->prepare("UPDATE radicados SET id_usuario = :usuario WHERE id_radicado = :id");
+                $stmt->bindParam(":usuario", $idUsuarioNuevo,     PDO::PARAM_INT);
+                $stmt->bindParam(":id",      $idRadicado,         PDO::PARAM_INT);
+            }
+            $stmt->execute();
+
+            $stmtHist = $db->prepare(
+                "INSERT INTO historial_radicado (id_radicado, id_usuario, accion, descripcion, fecha)
+                 VALUES (:id, :usuario_mod, 'reasignacion', :desc, NOW())"
+            );
+            $desc = "ReasignaciÃ³n a usuario ID {$idUsuarioNuevo}" . ($idDependenciaNueva ? " y dependencia ID {$idDependenciaNueva}." : ".") . ($comentario ? " Motivo: {$comentario}" : "");
+            $stmtHist->bindParam(":id",          $idRadicado,            PDO::PARAM_INT);
+            $stmtHist->bindParam(":usuario_mod", $idUsuarioModificador,  PDO::PARAM_INT);
+            $stmtHist->bindParam(":desc",         $desc,                  PDO::PARAM_STR);
+            $stmtHist->execute();
+
+            $db->commit();
+            return true;
+        } catch (Exception $e) {
+            $db->rollBack();
+            error_log("Error en ModeloRadicados::mdlReasignarRadicado: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Cierra o finaliza un radicado registrando fecha_cierre, usuario de cierre y estado final.
+     */
+    public static function mdlCerrarRadicado(int $idRadicado, string $observacion, int $idUsuarioCierre): bool
+    {
+        $db = Conexion::conectar();
+        try {
+            $db->beginTransaction();
+
+            $stmt = $db->prepare(
+                "UPDATE radicados
+                 SET id_estado = 6, fecha_cierre = NOW(), id_usuario_cierre = :usuario_cierre
+                 WHERE id_radicado = :id"
+            );
+            $stmt->bindParam(":usuario_cierre", $idUsuarioCierre, PDO::PARAM_INT);
+            $stmt->bindParam(":id",             $idRadicado,      PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmtHist = $db->prepare(
+                "INSERT INTO historial_radicado (id_radicado, id_usuario, accion, descripcion, fecha)
+                 VALUES (:id, :usuario_cierre, 'cierre_tramite', :desc, NOW())"
+            );
+            $desc = "Cierre y finalizaciÃ³n del trÃ¡mite. ObservaciÃ³n: " . ($observacion ?: "Cierre formal de radicado");
+            $stmtHist->bindParam(":id",             $idRadicado,      PDO::PARAM_INT);
+            $stmtHist->bindParam(":usuario_cierre", $idUsuarioCierre, PDO::PARAM_INT);
+            $stmtHist->bindParam(":desc",           $desc,            PDO::PARAM_STR);
+            $stmtHist->execute();
+
+            $db->commit();
+            return true;
+        } catch (Exception $e) {
+            $db->rollBack();
+            error_log("Error en ModeloRadicados::mdlCerrarRadicado: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Ejecuta una acciÃ³n masiva o por lotes sobre mÃºltiples radicados en una Ãºnica transacciÃ³n atÃ³mica.
+     */
+    public static function mdlAccionLote(string $accion, array $idsRadicados, array $datos, int $idUsuario): array
+    {
+        $exitosos = 0;
+        $fallidos = 0;
+        $errores  = [];
+
+        foreach ($idsRadicados as $id) {
+            $idInt = (int)$id;
+            if ($idInt <= 0) continue;
+
+            $ok = false;
+            switch ($accion) {
+                case "asignar":
+                    $idResponsable = (int)($datos["usuario"] ?? $datos["id_usuario"] ?? 0);
+                    if ($idResponsable > 0) {
+                        $ok = self::mdlAsignarResponsable($idInt, $idResponsable, $idUsuario);
+                    }
+                    break;
+
+                case "estado":
+                    $idEstado = (int)($datos["estado"] ?? $datos["id_estado"] ?? 0);
+                    $obs = trim($datos["observacion"] ?? "");
+                    if ($idEstado > 0) {
+                        $ok = self::mdlCambiarEstadoRadicado($idInt, $idEstado, $obs, $idUsuario);
+                    }
+                    break;
+
+                case "reasignar":
+                    $idNuevoResp = (int)($datos["usuarioNuevo"] ?? $datos["id_usuario"] ?? 0);
+                    $idNuevaDep  = !empty($datos["dependenciaNueva"]) ? (int)$datos["dependenciaNueva"] : (!empty($datos["id_dependencia"]) ? (int)$datos["id_dependencia"] : null);
+                    $obsReasig   = trim($datos["observacion"] ?? "");
+                    if ($idNuevoResp > 0) {
+                        $ok = self::mdlReasignarRadicado($idInt, $idNuevoResp, $idNuevaDep, $obsReasig, $idUsuario);
+                    }
+                    break;
+
+                case "cerrar":
+                    $obsCierre = trim($datos["observacion"] ?? "Cierre masivo desde bandeja de trÃ¡mites");
+                    $ok = self::mdlCerrarRadicado($idInt, $obsCierre, $idUsuario);
+                    break;
+            }
+
+            if ($ok) {
+                $exitosos++;
+            } else {
+                $fallidos++;
+                $errores[] = "No fue posible procesar el radicado ID #{$idInt}";
+            }
+        }
+
+        return [
+            "exitosos" => $exitosos,
+            "fallidos" => $fallidos,
+            "errores"  => $errores
         ];
     }
 }
