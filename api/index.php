@@ -113,6 +113,12 @@ if ($recurso === "radicados") {
         ControladorRadicados::ctrListar();
     }
 
+    // GET /api/radicados/remitente/{documento} -> Buscar remitente por documento
+    if ($metodo === "GET" && $param1 === "remitente" && $param2 !== null) {
+        $tipo = $_GET["tipo"] ?? null;
+        ControladorRadicados::ctrBuscarRemitente($param2, $tipo);
+    }
+
     // GET /api/radicados/{id} -> Detalle de radicado con documentos
     if ($metodo === "GET" && is_numeric($param1)) {
         ControladorRadicados::ctrObtener((int)$param1);
@@ -122,6 +128,20 @@ if ($recurso === "radicados") {
     if ($metodo === "POST" && $param1 === null) {
         $payload = !empty($_POST) ? $_POST : $body;
         ControladorRadicados::ctrRadicar($payload, $_FILES);
+    }
+
+    RespuestaHelper::error("Método no permitido para este recurso", 405);
+}
+
+/*=============================================
+RECURSO: REMITENTES (/api/remitentes)
+=============================================*/
+if ($recurso === "remitentes") {
+
+    // GET /api/remitentes/{documento} -> Buscar remitente externo por número de documento
+    if ($metodo === "GET" && $param1 !== null) {
+        $tipo = $_GET["tipo"] ?? null;
+        ControladorRadicados::ctrBuscarRemitente($param1, $tipo);
     }
 
     RespuestaHelper::error("Método no permitido para este recurso", 405);

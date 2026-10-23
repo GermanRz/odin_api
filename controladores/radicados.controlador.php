@@ -265,6 +265,30 @@ class ControladorRadicados
     }
 
     /**
+     * Endpoint REST: Consulta un remitente externo por número de documento para autollenado de formulario.
+     */
+    public static function ctrBuscarRemitente(string $numIdentificacion, ?string $tipoDoc = null): void
+    {
+        $numero = trim($numIdentificacion);
+        if (empty($numero)) {
+            RespuestaHelper::error("El número de documento es obligatorio para la búsqueda.", 400);
+            return;
+        }
+
+        try {
+            $remitente = ModeloRadicados::mdlBuscarRemitentePorDocumento($numero, $tipoDoc);
+            if ($remitente) {
+                RespuestaHelper::exito($remitente, "Remitente externo encontrado");
+            } else {
+                RespuestaHelper::error("No se encontró ningún remitente registrado con el número de documento proporcionado.", 404);
+            }
+        } catch (Exception $e) {
+            error_log("Error en ControladorRadicados::ctrBuscarRemitente: " . $e->getMessage());
+            RespuestaHelper::error("Error al consultar el remitente externo en el sistema.", 500);
+        }
+    }
+
+    /**
      * Normaliza la estructura multidimensional o simple de $_FILES a una lista homogénea.
      */
     private static function normalizarArchivosSubidos(array $files): array

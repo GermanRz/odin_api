@@ -110,8 +110,9 @@
                 </div>
                 <div class="col-md-6 form-group">
                   <label for="numeroDocumento"><i class="fas fa-hashtag mr-1"></i>Número de documento <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" id="numeroDocumento" name="numeroDocumento" placeholder="Número de identificación" required>
+                  <input type="text" class="form-control" id="numeroDocumento" name="numeroDocumento" placeholder="Número de identificación" required autocomplete="off">
                   <div class="invalid-feedback">Este campo es requerido</div>
+                  <small id="remitenteFeedback" class="form-text"></small>
                 </div>
               </div>
 

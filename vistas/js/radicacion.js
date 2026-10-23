@@ -7,7 +7,8 @@
 
 const API_RADICADOS_URL = "api/radicados";
 const API_CATALOGOS_URL = "api/radicados/catalogos";
-const API_USUARIOS_URL  = "api/usuarios";
+const API_USUARIOS_URL   = "api/usuarios";
+const API_REMITENTES_URL = "api/remitentes";
 
 // Formatos permitidos en cliente
 const ALLOWED_MIME_TYPES = [
@@ -26,6 +27,7 @@ $(document).ready(function() {
     inicializarCatalogos();
     inicializarEventosArchivos();
     inicializarRadicacionAnonima();
+    inicializarAutollenadoRemitente();
     inicializarEventosResumen();
     inicializarEnvioFormulario();
 
@@ -301,6 +303,116 @@ function obtenerIconoPorMime(mime) {
 /**
  * Control del Switch de Radicación Anónima (Ley de Transparencia RF-09)
  */
+
+let debounceTimerRemitente = null;
+let ultimoDocumentoBuscado = "";
+
+/**
+ * Autollenado reactivo de datos del solicitante consultando la tabla remitentes_externos
+ */
+function inicializarAutollenadoRemitente() {
+    const $numDoc = $("#numeroDocumento");
+    if (!$numDoc.length) return;
+
+    // 1. Detección en tiempo real con debounce al escribir o pegar
+    $numDoc.on("input", function() {
+        const valor = $(this).val().trim();
+        clearTimeout(debounceTimerRemitente);
+
+        if (valor.length < 3) {
+            $("#remitenteFeedback").empty();
+            ultimoDocumentoBuscado = "";
+            return;
+        }
+
+        debounceTimerRemitente = setTimeout(() => {
+            consultarYAutollenarRemitente(valor);
+        }, 400);
+    });
+
+    // 2. Consulta inmediata al perder el foco (blur) o cambio (change)
+    $numDoc.on("blur change", function() {
+        const valor = $(this).val().trim();
+        if (valor.length >= 3 && valor !== ultimoDocumentoBuscado) {
+            clearTimeout(debounceTimerRemitente);
+            consultarYAutollenarRemitente(valor);
+        }
+    });
+
+    // 3. Revalidar si cambia el tipo de documento con un número ya ingresado
+    $("#tipoDocumento").on("change", function() {
+        const valor = $numDoc.val().trim();
+        if (valor.length >= 3) {
+            ultimoDocumentoBuscado = "";
+            consultarYAutollenarRemitente(valor);
+        }
+    });
+}
+
+/**
+ * Consulta a la API RESTful los datos del remitente externo para autollenar el formulario
+ */
+function consultarYAutollenarRemitente(numeroDocumento) {
+    if ($("#radicacionAnonima").is(":checked")) return;
+    if (!numeroDocumento || numeroDocumento === ultimoDocumentoBuscado) return;
+
+    const tipoDoc = $("#tipoDocumento").val();
+    const queryParams = tipoDoc ? `?tipo=${encodeURIComponent(tipoDoc)}` : "";
+    const url = `${API_REMITENTES_URL}/${encodeURIComponent(numeroDocumento)}${queryParams}`;
+
+    fetch(url)
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(({ status, body }) => {
+            ultimoDocumentoBuscado = numeroDocumento;
+
+            if (status === 200 && body.success && body.data) {
+                const rem = body.data;
+                const nombreCompleto = rem.nombre_completo || [rem.nombre, rem.apellido].filter(Boolean).join(" ");
+
+                // Sincronizar select de tipo de documento
+                if (rem.tipo_identificacion) {
+                    const tipoNormalizado = rem.tipo_identificacion.toLowerCase();
+                    if ($(`#tipoDocumento option[value="${tipoNormalizado}"]`).length) {
+                        $("#tipoDocumento").val(tipoNormalizado);
+                    }
+                }
+
+                // Autollenar campos del solicitante
+                if (nombreCompleto) {
+                    $("#nombreSolicitante").val(nombreCompleto);
+                }
+                if (rem.correo) {
+                    $("#correoSolicitante").val(rem.correo);
+                }
+                if (rem.telefono) {
+                    $("#telefonoSolicitante").val(rem.telefono);
+                }
+                if (rem.direccion) {
+                    $("#ciudadSolicitante").val(rem.direccion);
+                }
+
+                // Mensaje informativo sutil
+                $("#remitenteFeedback").html(
+                    '<span class="text-success small font-weight-bold"><i class="fas fa-check-circle mr-1"></i>Remitente registrado: Datos cargados automáticamente.</span>'
+                );
+
+                // Destello visual en campos autocompletados
+                const $camposLlenados = $("#nombreSolicitante, #correoSolicitante, #telefonoSolicitante, #ciudadSolicitante");
+                $camposLlenados.addClass("border-success");
+                setTimeout(() => $camposLlenados.removeClass("border-success"), 2000);
+
+                actualizarResumen();
+            } else {
+                $("#remitenteFeedback").html(
+                    '<span class="text-muted small"><i class="fas fa-user-plus mr-1"></i>Remitente nuevo: Complete los datos para su registro.</span>'
+                );
+            }
+        })
+        .catch(err => {
+            console.warn("Aviso al consultar remitente externo:", err);
+            $("#remitenteFeedback").empty();
+        });
+}
 function inicializarRadicacionAnonima() {
     $("#radicacionAnonima").on("change", function() {
         const esAnonimo = $(this).is(":checked");
@@ -321,6 +433,8 @@ function inicializarRadicacionAnonima() {
                 $c.removeAttr("required");
                 $c.removeClass("is-invalid is-valid");
             });
+            ultimoDocumentoBuscado = "";
+            $("#remitenteFeedback").empty();
             $("#seccionDatosSolicitante").addClass("bg-light text-muted");
             $(".resumen-solicitante").html('<span class="badge badge-warning"><i class="fas fa-user-secret mr-1"></i>ANÓNIMO (Ley de Transparencia)</span>');
         } else {
@@ -395,6 +509,8 @@ function limpiarFormulario() {
     $("#tipoRadicacionVisible").val("Entrada");
     $("#estadoInicial").val("1");
     $("#estadoInicialVisible").val("Pendiente");
+    ultimoDocumentoBuscado = "";
+    $("#remitenteFeedback").empty();
     uploadedFiles = [];
     renderizarListaArchivos();
     $("#radicacionAnonima").prop("checked", false).trigger("change");

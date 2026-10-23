@@ -14,6 +14,7 @@ class TestRadicacionApi
         self::testCatalogosEndpoint();
         self::testValidacionAsuntoRequerido();
         self::testValidacionAdjuntoRequerido();
+        self::testBuscarRemitenteVacio();
         self::testRadicarExitosoConDocumento();
 
         echo "\n";
@@ -87,6 +88,20 @@ class TestRadicacionApi
         );
     }
 
+    private static function testBuscarRemitenteVacio(): void
+    {
+        $salida = self::ejecutarWorker("remitente_vacio");
+        $json = json_decode(trim($salida), true);
+
+        $rechazado = is_array($json) &&
+                     ($json["status"] ?? 0) === 400;
+
+        self::assert(
+            $rechazado,
+            "Consulta de remitente sin número de documento rechazada con HTTP 400"
+        );
+    }
+
     private static function testRadicarExitosoConDocumento(): void
     {
         $tmpPdf = tempnam(sys_get_temp_dir(), "api_pdf_test_");
@@ -117,6 +132,10 @@ class TestRadicacionApi
         switch ($worker) {
             case "catalogos":
                 ControladorRadicados::ctrCatalogos();
+                break;
+
+            case "remitente_vacio":
+                ControladorRadicados::ctrBuscarRemitente("");
                 break;
 
             case "asunto_req":

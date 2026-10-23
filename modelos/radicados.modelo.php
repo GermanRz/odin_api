@@ -421,4 +421,51 @@ class ModeloRadicados
             "subseries"    => $subseries
         ];
     }
+
+    /**
+     * Consulta un remitente externo por número de identificación y opcionalmente tipo.
+     * Retorna datos estructurados para autollenado o null si no se encuentra.
+     *
+     * @param string $numIdentificacion Número de documento a consultar.
+     * @param string|null $tipoDoc Tipo de identificación opcional (CC, CE, NIT, etc.).
+     * @return array|null Datos del remitente o null si no existe.
+     */
+    public static function mdlBuscarRemitentePorDocumento(string $numIdentificacion, ?string $tipoDoc = null): ?array
+    {
+        $db = Conexion::conectar();
+        $numDoc = trim($numIdentificacion);
+
+        if (!empty($tipoDoc)) {
+            $tipo = strtoupper(trim($tipoDoc));
+            $stmt = $db->prepare(
+                "SELECT id_remitente, tipo_identificacion, num_identificacion, nombre, apellido, correo, telefono, direccion
+                 FROM remitentes_externos
+                 WHERE num_identificacion = :num AND UPPER(tipo_identificacion) = :tipo
+                 LIMIT 1"
+            );
+            $stmt->bindParam(":num",  $numDoc, PDO::PARAM_STR);
+            $stmt->bindParam(":tipo", $tipo,   PDO::PARAM_STR);
+        } else {
+            $stmt = $db->prepare(
+                "SELECT id_remitente, tipo_identificacion, num_identificacion, nombre, apellido, correo, telefono, direccion
+                 FROM remitentes_externos
+                 WHERE num_identificacion = :num
+                 ORDER BY id_remitente DESC
+                 LIMIT 1"
+            );
+            $stmt->bindParam(":num", $numDoc, PDO::PARAM_STR);
+        }
+
+        $stmt->execute();
+        $remitente = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$remitente) {
+            return null;
+        }
+
+        $nombreCompleto = trim($remitente["nombre"] . " " . ($remitente["apellido"] ?? ""));
+        $remitente["nombre_completo"] = !empty($nombreCompleto) ? $nombreCompleto : $remitente["nombre"];
+
+        return $remitente;
+    }
 }
