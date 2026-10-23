@@ -152,7 +152,6 @@ if ($recurso === "radicados") {
 }
 
 /*=============================================
-<<<<<<< HEAD
 RECURSO: REMITENTES (/api/remitentes)
 =============================================*/
 if ($recurso === "remitentes") {
@@ -161,7 +160,12 @@ if ($recurso === "remitentes") {
     if ($metodo === "GET" && $param1 !== null) {
         $tipo = $_GET["tipo"] ?? null;
         ControladorRadicados::ctrBuscarRemitente($param1, $tipo);
-=======
+    }
+
+    RespuestaHelper::error("Método no permitido para este recurso", 405);
+}
+
+/*=============================================
 RECURSO: SEGUIMIENTO Y TRAZABILIDAD (/api/seguimiento)
 =============================================*/
 if ($recurso === "seguimiento") {
@@ -199,18 +203,13 @@ if ($recurso === "seguimiento") {
     // POST /api/seguimiento/{id}/movimiento (o traza / transicion) -> Registrar hito
     if ($metodo === "POST" && is_numeric($param1) && in_array($param2, ["movimiento", "traza", "transicion"], true)) {
         ControladorSeguimiento::ctrRegistrarMovimiento((int)$param1, $body);
->>>>>>> 4daa95a (refactor(seguimiento): simplificar vista a tabla directa con filtro en vista y acceso a metadatos desde historial)
     }
 
     RespuestaHelper::error("Método no permitido para este recurso", 405);
 }
 
 /*=============================================
-<<<<<<< HEAD
-RECURSOS AUXILIARES: ROLES, DEPENDENCIAS, TRAMITES, ESTADOS
-=======
 RECURSOS AUXILIARES: ROLES, DEPENDENCIAS, TRAMITES, ESTADOS, SERIES, SUBSERIES
->>>>>>> 4daa95a (refactor(seguimiento): simplificar vista a tabla directa con filtro en vista y acceso a metadatos desde historial)
 =============================================*/
 if ($recurso === "roles" && $metodo === "GET") {
     $roles = ModeloRoles::mdlMostrarRoles("roles");
