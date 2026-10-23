@@ -78,3 +78,10 @@ Toda interfaz gráfica debe utilizar los recursos, estilos y componentes de Admi
 - **Endpoints de la API:** Sustantivos en plural (`/api/usuarios`, `/api/radicados`) y verbos semánticos (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`).
 - **Base de Datos:** Tablas en minúsculas y `snake_case` plural (`usuarios`, `radicados`), claves primarias `id_[tabla_singular]`.
 - **Scripts Frontend:** Archivos modulares `vistas/js/[modulo].js` con variables y funciones en `camelCase`.
+
+---
+
+## 7. Flujo Obligatorio de Control de Versiones (Git Workflow)
+
+- **Creación de Nueva Rama por Solicitud:** Antes de modificar o crear cualquier archivo de código, se debe crear y utilizar una nueva rama dedicada (`features/[nombre]`, `fix/[nombre]`, `refactor/[nombre]`, `chore/[nombre]`). Queda prohibido codificar directamente en la rama principal (`main`).
+- **Mensaje de Commit Obligatorio al Finalizar:** Al completar la tarea, es obligatorio incluir al final de la respuesta el mensaje de commit sugerido bajo el estándar Conventional Commits (`tipo(alcance): descripción`) y el bloque de comandos para aplicarlo.

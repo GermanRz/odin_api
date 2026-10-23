@@ -5,6 +5,7 @@ description: >-
   Activa este skill obligatoriamente siempre que se vaya a crear, modificar, auditar o refactorizar código
   (PHP, SQL, JavaScript, HTML) para el proyecto ODIN, garantizando una arquitectura MVC desacoplada
   mediante API RESTful nativa, PDO seguro, estilos oficiales AdminLTE 3 en vistas, DataTables con AJAX y SweetAlert2.
+  Incluye el flujo obligatorio de Git: creación de nueva rama para cada solicitud y entrega del mensaje de commit al finalizar.
 ---
 
 # Skill: Lineamientos Oficiales de Desarrollo de Software — Proyecto ODIN
@@ -49,6 +50,10 @@ El agente y cualquier desarrollador deben aplicar estas directrices con toleranc
 6. **PROHIBICIÓN DE FRAMEWORKS GLOBALES:**
    - No usar Laravel, Symfony, CodeIgniter, etc.
    - El backend debe construirse en **PHP 8.x Nativo Orientado a Objetos** con arquitectura limpia y desacoplada.
+
+7. **CONTROL DE VERSIONES OBLIGATORIO (NUEVA RAMA Y COMMITS EN GIT):**
+   - **Creación de rama antes de codificar:** Ante cualquier solicitud que implique crear, editar o refactorizar código, se **DEBE crear y cambiar a una nueva rama en Git** (`features/...`, `fix/...`, `refactor/...`, `chore/...`). Queda estrictamente prohibido realizar modificaciones de código directamente en la rama principal (`main` o `master`).
+   - **Mensaje de commit obligatorio al finalizar:** Al terminar todas las modificaciones de código requeridas por la solicitud, el asistente/desarrollador **DEBE proporcionar obligatoriamente el mensaje de commit formateado** (bajo el estándar Conventional Commits) con sus comandos para aplicarlo.
 
 ---
 
@@ -377,7 +382,55 @@ $(document).ready(function() {
 
 ---
 
-## 7. CHECKLIST DE AUTO-VALIDACIÓN PREVIA A ENTREGAR CÓDIGO
+## 7. FLUJO OBLIGATORIO DE CONTROL DE VERSIONES (GIT WORKFLOW)
+
+Para mantener la integridad, trazabilidad y control de cambios en el proyecto ODIN, es mandatorio aplicar el siguiente flujo ante **toda solicitud o requerimiento que implique crear, editar o refactorizar código**:
+
+### 7.1. Creación Obligatoria de Nueva Rama por Solicitud
+Antes de modificar o crear cualquier archivo en el proyecto:
+1. **Verificar el estado de trabajo y la rama base:**
+   ```bash
+   git status
+   ```
+2. **Crear y activar una rama específica para la solicitud:**
+   - La rama debe derivarse de la rama principal (`main`) y usar prefijos semánticos:
+     - `features/[nombre-descriptivo]`: Nuevas funcionalidades, vistas, endpoints o submódulos (ej. `features/radicacion`, `features/gestion-anexos`).
+     - `fix/[nombre-descriptivo]`: Corrección de errores, fallos de API o validaciones (ej. `fix/radicacion-series`).
+     - `refactor/[nombre-descriptivo]`: Mejoras de código o modularización sin alterar funcionalidad externa.
+     - `chore/[nombre-descriptivo]`: Mantenimiento, tooling, configuración o reglas del repositorio.
+   - Comando de creación y cambio:
+     ```bash
+     git checkout -b features/[nombre-de-la-solicitud]
+     ```
+3. **Prohibición de trabajo directo en `main`:** Queda terminantemente prohibido commitear o realizar cambios de código directamente sobre la rama principal `main` sin haber creado previamente la rama de la solicitud.
+
+### 7.2. Generación y Entrega del Mensaje de Commit al Finalizar
+Una vez completadas todas las modificaciones y las auto-validaciones de la solicitud:
+1. Inspeccionar los cambios realizados con `git status`.
+2. **Generar e incluir obligatoriamente al final de la respuesta al usuario el mensaje de commit**, estructurado conforme a la especificación de **Conventional Commits**:
+   - **Formato obligatorio:**
+     ```text
+     <tipo>(<alcance>): <descripción clara y concisa en tiempo presente/imperativo>
+
+     [Cuerpo opcional detallando los cambios clave realizados, arquitectura respetada o componentes afectados]
+     ```
+   - **Tipos permitidos:**
+     - `feat`: Nueva funcionalidad o componente (ej. `feat(radicacion): agregar endpoint de consulta`).
+     - `fix`: Corrección de un defecto o bug (ej. `fix(usuarios): corregir validacion de identificacion`).
+     - `refactor`: Refactorización de código sin cambio funcional.
+     - `style`: Ajustes cosméticos o estilos AdminLTE 3 sin lógica.
+     - `docs`: Documentación o manuales técnicos.
+     - `chore`: Mantenimiento, reglas, skills o configuración.
+3. Proporcionar el bloque de comandos para facilitar su aplicación inmediata:
+   ```bash
+   git add .
+   git commit -m "<tipo>(<alcance>): <descripción>"
+   ```
+
+---
+
+## 8. CHECKLIST DE AUTO-VALIDACIÓN PREVIA A ENTREGAR CÓDIGO
+- [ ] ¿Se creó y activó una nueva rama de Git específica (`features/...`, `fix/...`, etc.) antes de modificar el código?
 - [ ] ¿La vista aplica rigurosamente la estructura y clases de AdminLTE 3 (`content-header`, `content`, `card card-outline`, `btn`, `fas fa-*`)?
 - [ ] ¿El archivo de vista carece al 100% de llamadas PHP a controladores o consultas SQL?
 - [ ] ¿El controlador REST retorna únicamente JSON y códigos de estado HTTP semánticos?
@@ -385,3 +438,4 @@ $(document).ready(function() {
 - [ ] ¿Toda consulta SQL utiliza sentencias preparadas de PDO con `bindParam` tipificado?
 - [ ] ¿El formulario se envía asíncronamente con `preventDefault()` y `fetch` o `$.ajax`?
 - [ ] ¿DataTables se alimenta mediante la opción `ajax: { url: "api/...", dataSrc: "data" }`?
+- [ ] ¿Se entregó al final de la respuesta el mensaje de commit formateado (Conventional Commits) listo para aplicar?
