@@ -7,6 +7,7 @@
  * 1. Servicio de Archivos y Validación Binaria MIME (Anti-suplantación y límites)
  * 2. Modelo de Persistencia de Radicación en MySQL Local (Consecutivos, transacciones)
  * 3. Controlador RESTful de Radicación (Códigos HTTP, payloads y respuestas JSON)
+ * 4. Módulo de Consulta, Seguimiento y Trazabilidad (AGN / Ley 594 de 2000 / Semáforo RF-30)
  * 
  * Uso:
  *   php tests/run_all_tests.php
@@ -15,6 +16,7 @@
 require_once __DIR__ . "/test_archivo_servicio.php";
 require_once __DIR__ . "/test_radicacion_modelo.php";
 require_once __DIR__ . "/test_radicacion_api.php";
+require_once __DIR__ . "/test_modulo_seguimiento_completo.php";
 
 echo "====================================================================\n";
 echo "   ODIN GESTOR DOCUMENTAL — SUITE DE PRUEBAS AUTOMATIZADAS          \n";
@@ -40,9 +42,14 @@ $r3 = TestRadicacionApi::run();
 $totalPasadas  += $r3["pasadas"];
 $totalFallidas += $r3["fallidas"];
 
+// 4. Suite de Consulta, Seguimiento y Trazabilidad AGN
+$r4 = TestSeguimientoCompleto::run();
+$totalPasadas  += $r4["pasadas"];
+$totalFallidas += $r4["fallidas"];
+
 $duracion = round(microtime(true) - $inicio, 2);
 
-echo "====================================================================\n";
+echo "\n====================================================================\n";
 echo "   RESUMEN FINAL DE LA SUITE DE REGRESIÓN                          \n";
 echo "====================================================================\n";
 echo "  Total de aserciones ejecutadas : " . ($totalPasadas + $totalFallidas) . "\n";

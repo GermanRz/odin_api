@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . "/conexion.php";
+require_once __DIR__ . "/seguimiento.modelo.php";
 
 /**
  * Modelo de Persistencia para Radicados y Documentos — Proyecto ODIN
