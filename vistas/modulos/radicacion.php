@@ -72,13 +72,10 @@
                   <div class="invalid-feedback">Este campo es requerido</div>
                 </div>
                 <div class="col-md-6 form-group">
-                  <label for="estadoInicial"><i class="fas fa-flag mr-1"></i>Estado inicial <span class="text-danger">*</span></label>
-                  <select class="form-control" id="estadoInicial" name="estadoInicial" required>
-                    <option value="">Seleccione un estado...</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="en_proceso">En proceso</option>
-                  </select>
-                  <div class="invalid-feedback">Este campo es requerido</div>
+                  <label for="estadoInicialVisible"><i class="fas fa-flag mr-1"></i>Estado inicial</label>
+                  <input type="text" class="form-control bg-light" id="estadoInicialVisible" value="Pendiente" readonly>
+                  <input type="hidden" id="estadoInicial" name="estadoInicial" value="1">
+                  <small class="form-text text-muted">Establecido por defecto como Pendiente</small>
                 </div>
               </div>
             </div>

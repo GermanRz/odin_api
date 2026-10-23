@@ -105,12 +105,15 @@ function poblarSelectDependencias(dependencias) {
 }
 
 function poblarSelectEstados(estados) {
-    const $select = $("#estadoInicial");
-    $select.empty().append('<option value="">Seleccione un estado...</option>');
-    estados.forEach(e => {
-        const isPendiente = e.nombre.toLowerCase().includes("pendiente");
-        $select.append(`<option value="${e.id_estado}" ${isPendiente ? 'selected' : ''}>${e.nombre}</option>`);
-    });
+    // Fijar el estado inicial "Pendiente" por defecto sin permitir modificación
+    const estadoPendiente = estados.find(e => e.nombre && e.nombre.toLowerCase().includes("pendiente"));
+    if (estadoPendiente) {
+        $("#estadoInicial").val(estadoPendiente.id_estado);
+        $("#estadoInicialVisible").val(estadoPendiente.nombre);
+    } else {
+        $("#estadoInicial").val("1");
+        $("#estadoInicialVisible").val("Pendiente");
+    }
 }
 
 function poblarSelectSeries(series, subseries) {
@@ -390,6 +393,8 @@ function limpiarFormulario() {
     $("#formRadicacion").removeClass("was-validated");
     $("#tipoRadicacion").val("entrada");
     $("#tipoRadicacionVisible").val("Entrada");
+    $("#estadoInicial").val("1");
+    $("#estadoInicialVisible").val("Pendiente");
     uploadedFiles = [];
     renderizarListaArchivos();
     $("#radicacionAnonima").prop("checked", false).trigger("change");
