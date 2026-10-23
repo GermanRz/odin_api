@@ -15,6 +15,7 @@
 require_once __DIR__ . "/test_archivo_servicio.php";
 require_once __DIR__ . "/test_radicacion_modelo.php";
 require_once __DIR__ . "/test_radicacion_api.php";
+require_once __DIR__ . "/test_dependencias_encargado_radicacion.php";
 
 echo "====================================================================\n";
 echo "   ODIN GESTOR DOCUMENTAL — SUITE DE PRUEBAS AUTOMATIZADAS          \n";
@@ -39,6 +40,11 @@ $totalFallidas += $r2["fallidas"];
 $r3 = TestRadicacionApi::run();
 $totalPasadas  += $r3["pasadas"];
 $totalFallidas += $r3["fallidas"];
+
+// 4. Suite de Dependencias y Encargados Responsables
+$r4 = TestDependenciasEncargadoRadicacion::run();
+$totalPasadas  += $r4["pasadas"];
+$totalFallidas += $r4["fallidas"];
 
 $duracion = round(microtime(true) - $inicio, 2);
 

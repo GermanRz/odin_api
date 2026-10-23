@@ -191,7 +191,7 @@ class TestDependenciasEncargadoRadicacion
             ]
         ];
 
-        $resultado = ModeloRadicados::mdlGuardarRadicado($datosRad, $docMeta);
+        $resultado = ModeloRadicados::mdlRadicarDocumento($datosRad, $docMeta, null);
         self::assert(!empty($resultado["id_radicado"]), "Radicación completada con ID " . ($resultado["id_radicado"] ?? "N/A"));
 
         // Comprobar en BD que el radicado quedó vinculado al usuario Carlos Mendoza (ID 2)
