@@ -56,6 +56,11 @@ if (session_status() === PHP_SESSION_NONE) {
 <?php
 if (isset($_SESSION["iniciarSesion"]) && $_SESSION["iniciarSesion"] == "ok") {
 
+  // Asegurar que los permisos RBAC estén cargados en la sesión activa
+  if (!isset($_SESSION["permisos"]) && isset($_SESSION["rol"])) {
+    ControladorRoles::ctrCargarPermisosSesion((int)$_SESSION["rol"]);
+  }
+
   echo '<body class="hold-transition sidebar-mini">';
   echo '<!-- Site wrapper -->';
   echo '<div class="wrapper">';
@@ -65,25 +70,60 @@ if (isset($_SESSION["iniciarSesion"]) && $_SESSION["iniciarSesion"] == "ok") {
 
     echo '<div class="content-wrapper">';
 
+    // Verificación de seguridad: Detectar si la clave activa es igual al número de cédula
+    if (!isset($_SESSION["clavePorDefecto"]) && isset($_SESSION["id"])) {
+        $uSesionActiva = ModeloUsuarios::mdlMostrarUsuario("id_usuario", $_SESSION["id"]);
+        if ($uSesionActiva) {
+            $_SESSION["clavePorDefecto"] = password_verify((string)$uSesionActiva["num_identificacion"], (string)$uSesionActiva["password"]);
+        }
+    }
+
+    if (!empty($_SESSION["clavePorDefecto"])) {
+        include "modulos/alerta_clave_defecto.php";
+    }
+
     if (isset($_GET["ruta"])) {
 
-      if (
-        $_GET["ruta"] == "contacto" ||
-        $_GET["ruta"] == "inicio" ||
-        $_GET["ruta"] == "gestion_usuarios" ||
-        $_GET["ruta"] == "roles_permisos" ||
-        $_GET["ruta"] == "dependencias" ||
-        $_GET["ruta"] == "radicacion" ||
-        $_GET["ruta"] == "consulta_seguimiento" ||
-        $_GET["ruta"] == "series_documentales" ||
-        $_GET["ruta"] == "subseries_documentales" ||
-        $_GET["ruta"] == "gestion_tramites" ||
-        $_GET["ruta"] == "reportes" ||
-        $_GET["ruta"] == "roles_permisosForm" ||
-        $_GET["ruta"] == "dependenciasForm" ||
-        $_GET["ruta"] == "salir"
-      ) {
-        include "modulos/" . $_GET["ruta"] . ".php";
+      $ruta = $_GET["ruta"];
+      $rutasValidas = [
+        "contacto",
+        "inicio",
+        "gestion_usuarios",
+        "roles_permisos",
+        "roles_permisosForm",
+        "dependencias",
+        "dependenciasForm",
+        "radicacion",
+        "consulta_seguimiento",
+        "series_documentales",
+        "subseries_documentales",
+        "gestion_tramites",
+        "reportes",
+        "error403",
+        "salir"
+      ];
+
+      // Mapa de protección de rutas por permisos granulares RBAC (RF-N13 / RF-N14)
+      $permisosPorRuta = [
+        "gestion_usuarios"       => "admin_usuarios",
+        "roles_permisos"         => "admin_roles",
+        "roles_permisosForm"     => "admin_roles",
+        "dependencias"           => "ver_dependencias",
+        "dependenciasForm"       => "ver_dependencias",
+        "radicacion"             => ["crear_radicado", "editar_radicado", "ver_radicados"],
+        "consulta_seguimiento"   => "ver_radicados",
+        "series_documentales"    => "admin_ccd",
+        "subseries_documentales" => "admin_ccd",
+        "gestion_tramites"       => ["ver_tramites", "gestionar_tramites", "asignar_tramites", "trasladar_radicado", "finalizar_radicado"],
+        "reportes"               => "ver_reportes"
+      ];
+
+      if (in_array($ruta, $rutasValidas, true)) {
+        if (isset($permisosPorRuta[$ruta]) && !ControladorRoles::ctrTienePermiso($permisosPorRuta[$ruta])) {
+          include "modulos/error403.php";
+        } else {
+          include "modulos/" . $ruta . ".php";
+        }
       } else {
         include "modulos/error404.php";
       }
@@ -95,9 +135,11 @@ if (isset($_SESSION["iniciarSesion"]) && $_SESSION["iniciarSesion"] == "ok") {
     echo '</div>';
 
     include "modulos/footer.php";
+    include "modulos/perfil_modal.php";
 
   echo '</div>';
   echo '<!-- ./wrapper -->';
+  echo '<script src="vistas/js/perfil.js"></script>';
 
 } else {
 

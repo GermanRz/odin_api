@@ -1,14 +1,15 @@
 <?php
 
 require_once __DIR__ . "/../modelos/usuarios.modelo.php";
+require_once __DIR__ . "/../modelos/roles.modelo.php";
+require_once __DIR__ . "/roles.controlador.php";
 require_once __DIR__ . "/../api/helpers/respuesta.helper.php";
 
 /**
  * ControladorUsuarios
  * 
- * Controlador de la API RESTful para el módulo de usuarios del Sistema ODIN.
- * Procesa peticiones HTTP, valida datos, orquesta la persistencia y emite
- * respuestas estandarizadas mediante RespuestaHelper.
+ * Controlador de la API RESTful para el módulo de usuarios y autenticación RBAC del Sistema ODIN.
+ * Cumple con RF-01, RF-N09, RF-N10, RF-N13, RF-N15 y RF-44.
  */
 class ControladorUsuarios {
 
@@ -26,14 +27,20 @@ class ControladorUsuarios {
     }
 
     /*=============================================
-    API REST: OBTENER USUARIO (GET /api/usuarios/{id})
+    API REST: OBTENER USUARIO Y PERMISOS (GET /api/usuarios/{id})
     =============================================*/
     public static function ctrObtener(int $id): void {
         try {
             $usuario = ModeloUsuarios::mdlMostrarUsuario("id_usuario", $id);
             if ($usuario) {
+                // Validar si la contraseña actual sigue siendo igual al documento de identificación
+                $esClavePorDefecto = password_verify((string)$usuario["num_identificacion"], (string)$usuario["password"]);
+                $usuario["clavePorDefecto"] = $esClavePorDefecto;
+
                 // Seguridad: jamás exponer el hash de la contraseña en respuestas de la API
                 unset($usuario["password"]);
+                $idRol = (int)($usuario["id_rol"] ?? 0);
+                $usuario["permisos_rol"] = $idRol > 0 ? ControladorRoles::ctrMostrarPermisosPorRol($idRol) : [];
                 RespuestaHelper::exito($usuario, "Usuario encontrado");
             } else {
                 RespuestaHelper::error("Usuario no encontrado", 404);
@@ -56,30 +63,28 @@ class ControladorUsuarios {
         $idDependencia        = (int)($datos["idDependencia"] ?? $datos["id_dependencia"] ?? 0);
         $direccion            = trim($datos["direccion"] ?? "");
         $telefono             = trim($datos["telefono"] ?? "");
+        $passwordPlano        = trim($datos["password"] ?? "");
 
-        // 1. Validar campos obligatorios
         if (empty($nombre) || empty($numeroIdentificacion) || empty($correo)) {
             RespuestaHelper::error("Los campos Nombre, Identificación y Correo electrónico son obligatorios", 400);
         }
 
-        // 2. Validar formato de correo
         if (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
             RespuestaHelper::error("El correo electrónico no posee un formato válido", 400);
         }
 
-        // 3. Validar duplicidad de documento
         $existeDoc = ModeloUsuarios::mdlMostrarUsuario("num_identificacion", $numeroIdentificacion);
         if ($existeDoc) {
             RespuestaHelper::error("El número de identificación ya se encuentra registrado en el sistema", 409);
         }
 
-        // 4. Validar duplicidad de correo
         $existeCorreo = ModeloUsuarios::mdlMostrarUsuario("correo", $correo);
         if ($existeCorreo) {
             RespuestaHelper::error("El correo electrónico ya se encuentra registrado para otro usuario", 409);
         }
 
-        // 5. Preparar datos y cifrar contraseña por defecto con número de identificación
+        $claveFinal = $passwordPlano !== "" ? $passwordPlano : $numeroIdentificacion;
+
         $datosCrear = [
             "tipoIdentificacion"   => $tipoIdentificacion,
             "numeroIdentificacion" => $numeroIdentificacion,
@@ -90,7 +95,7 @@ class ControladorUsuarios {
             "direccion"            => $direccion,
             "telefono"             => $telefono,
             "estado"               => "Activo",
-            "password"             => password_hash($numeroIdentificacion, PASSWORD_DEFAULT)
+            "password"             => password_hash($claveFinal, PASSWORD_DEFAULT)
         ];
 
         $resultado = ModeloUsuarios::mdlCrearUsuario($datosCrear);
@@ -112,6 +117,7 @@ class ControladorUsuarios {
         $idDependencia = (int)($datos["idDependencia"] ?? $datos["id_dependencia"] ?? 0);
         $direccion     = trim($datos["direccion"] ?? "");
         $telefono      = trim($datos["telefono"] ?? "");
+        $nuevaPassword = trim($datos["password"] ?? "");
 
         if (empty($nombre) || empty($correo)) {
             RespuestaHelper::error("El nombre y el correo electrónico son obligatorios para actualizar", 400);
@@ -121,16 +127,22 @@ class ControladorUsuarios {
             RespuestaHelper::error("El correo electrónico no posee un formato válido", 400);
         }
 
-        // Comprobar existencia del usuario
         $usuarioExistente = ModeloUsuarios::mdlMostrarUsuario("id_usuario", $id);
         if (!$usuarioExistente) {
             RespuestaHelper::error("El usuario a actualizar no existe", 404);
         }
 
-        // Comprobar si el correo ya está en uso por otro usuario distinto
         $usuarioConCorreo = ModeloUsuarios::mdlMostrarUsuario("correo", $correo);
         if ($usuarioConCorreo && (int)$usuarioConCorreo["id_usuario"] !== $id) {
             RespuestaHelper::error("El correo electrónico ya está en uso por otro usuario", 409);
+        }
+
+        // Si no se proporcionó rol o dependencia válida (ej: actualización desde perfil propio), preservar los existentes
+        if ($idRol <= 0 && isset($usuarioExistente["id_rol"])) {
+            $idRol = (int)$usuarioExistente["id_rol"];
+        }
+        if ($idDependencia <= 0 && isset($usuarioExistente["id_dependencia"])) {
+            $idDependencia = (int)$usuarioExistente["id_dependencia"];
         }
 
         $datosActualizar = [
@@ -142,10 +154,34 @@ class ControladorUsuarios {
             "telefono"      => $telefono
         ];
 
+        // Manejo opcional de cambio de contraseña
+        $nuevaClave = !empty($datos["password"]) ? trim((string)$datos["password"]) : $nuevaPassword;
+        if ($nuevaClave !== "") {
+            if (strlen($nuevaClave) < 4) {
+                RespuestaHelper::error("La nueva contraseña debe tener al menos 4 caracteres", 400);
+            }
+            $datosActualizar["password"] = password_hash($nuevaClave, PASSWORD_DEFAULT);
+        }
+
         $resultado = ModeloUsuarios::mdlEditarUsuario($id, $datosActualizar);
 
         if ($resultado) {
-            RespuestaHelper::exito([], "Usuario actualizado correctamente", 200);
+            // Si el usuario actualizado es el mismo que tiene la sesión activa, sincronizar la sesión
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                if ((isset($_SESSION["id"]) && (int)$_SESSION["id"] === $id) ||
+                    (isset($_SESSION["id_usuario"]) && (int)$_SESSION["id_usuario"] === $id)) {
+                    $_SESSION["nombre"] = $nombre;
+                    $_SESSION["correo"] = $correo;
+                    $_SESSION["rol"] = $idRol;
+                    ControladorRoles::ctrCargarPermisosSesion($idRol);
+                    if (!empty($datos["password"])) {
+                        $_SESSION["clavePorDefecto"] = ((string)$usuarioExistente["num_identificacion"] === trim((string)$datos["password"]));
+                    }
+                }
+            }
+            RespuestaHelper::exito([
+                "clavePorDefecto" => (!empty($datos["password"]) ? ((string)$usuarioExistente["num_identificacion"] === trim((string)$datos["password"])) : false)
+            ], "Usuario actualizado correctamente", 200);
         } else {
             RespuestaHelper::error("No fue posible actualizar la información del usuario", 500);
         }
@@ -157,6 +193,10 @@ class ControladorUsuarios {
     public static function ctrCambiarEstado(int $id, string $nuevoEstado): void {
         if ($nuevoEstado !== "Activo" && $nuevoEstado !== "Inactivo") {
             RespuestaHelper::error("El estado especificado no es válido (debe ser Activo o Inactivo)", 400);
+        }
+
+        if ($id === 1 && $nuevoEstado !== "Activo") {
+            RespuestaHelper::error("El usuario Administrador principal no puede ser desactivado", 400);
         }
 
         $usuarioExistente = ModeloUsuarios::mdlMostrarUsuario("id_usuario", $id);
@@ -174,6 +214,34 @@ class ControladorUsuarios {
     }
 
     /*=============================================
+    API REST: ELIMINAR USUARIO (DELETE /api/usuarios/{id})
+    =============================================*/
+    public static function ctrEliminar(int $id): void {
+        if ($id === 1) {
+            RespuestaHelper::error("El usuario Administrador principal del sistema no puede eliminarse", 400);
+        }
+
+        if (isset($_SESSION["id"]) && (int)$_SESSION["id"] === $id) {
+            RespuestaHelper::error("No puede eliminar su propia cuenta con sesión activa", 400);
+        }
+
+        $usuarioExistente = ModeloUsuarios::mdlMostrarUsuario("id_usuario", $id);
+        if (!$usuarioExistente) {
+            RespuestaHelper::error("El usuario que intenta eliminar no existe", 404);
+        }
+
+        $resultado = ModeloUsuarios::mdlEliminarUsuario($id);
+
+        if ($resultado === "ok") {
+            RespuestaHelper::exito([], "El usuario fue eliminado correctamente", 200);
+        } elseif ($resultado === "en_uso") {
+            RespuestaHelper::error("No se puede eliminar este usuario porque tiene radicados asociados. Desactívelo en su lugar.", 409);
+        } else {
+            RespuestaHelper::error("Error interno al intentar eliminar el usuario", 500);
+        }
+    }
+
+    /*=============================================
     API REST: MÉTRICAS Y ESTADÍSTICAS (GET /api/usuarios/stats)
     =============================================*/
     public static function ctrEstadisticas(): void {
@@ -181,11 +249,13 @@ class ControladorUsuarios {
             $total = ModeloUsuarios::mdlContarUsuarios();
             $activos = ModeloUsuarios::mdlContarUsuariosActivos();
             $inactivos = ModeloUsuarios::mdlContarUsuariosInactivos();
+            $statsRoles = ModeloRoles::mdlEstadisticasRoles();
 
             RespuestaHelper::exito([
-                "total"     => (int)($total["total"] ?? 0),
-                "activos"   => (int)($activos["total"] ?? 0),
-                "inactivos" => (int)($inactivos["total"] ?? 0)
+                "total"        => (int)($total["total"] ?? 0),
+                "activos"      => (int)($activos["total"] ?? 0),
+                "inactivos"    => (int)($inactivos["total"] ?? 0),
+                "rolesActivos" => (int)($statsRoles["activos"] ?? 0)
             ], "Estadísticas de usuarios obtenidas correctamente");
         } catch (Exception $e) {
             error_log("Error en ControladorUsuarios::ctrEstadisticas: " . $e->getMessage());
@@ -194,22 +264,16 @@ class ControladorUsuarios {
     }
 
     /*=============================================
-    COMPATIBILIDAD CON LOGIN DE SESIÓN EXISTENTE
+    AUTENTICACIÓN FLEXIBLE Y VALIDACIÓN RBAC (RF-01 / RF-N09 / RF-N13)
     =============================================*/
     public static function ctrIngresoUsuario(): void {
         if (isset($_POST["ingUsuario"])) {
-            if (preg_match('/^[a-zA-Z0-9_@.-]+$/', $_POST["ingUsuario"])) {
-                $item = "num_identificacion";
-                $valor = $_POST["ingUsuario"];
+            $usuarioInput = trim($_POST["ingUsuario"]);
 
-                $respuesta = ModeloUsuarios::mdlMostrarUsuario($item, $valor);
+            if (preg_match('/^[a-zA-Z0-9_@.\-\sáéíóúÁÉÍÓÚñÑ()\/]+$/u', $usuarioInput)) {
+                $respuesta = ModeloUsuarios::mdlBuscarUsuarioLoginFlexible($usuarioInput);
 
-                if (!$respuesta) {
-                    $item = "correo";
-                    $respuesta = ModeloUsuarios::mdlMostrarUsuario($item, $valor);
-                }
-
-                if ($respuesta && ($respuesta["num_identificacion"] == $_POST["ingUsuario"] || $respuesta["correo"] == $_POST["ingUsuario"])) {
+                if ($respuesta) {
                     if (password_verify($_POST["ingPassword"], $respuesta["password"])) {
                         if ($respuesta["estado"] === "Activo") {
                             $_SESSION["iniciarSesion"] = "ok";
@@ -220,13 +284,40 @@ class ControladorUsuarios {
                             $_SESSION["correo"] = $respuesta["correo"];
                             $_SESSION["rol"] = $respuesta["id_rol"];
                             $_SESSION["estado"] = $respuesta["estado"];
+                            $_SESSION["clavePorDefecto"] = password_verify((string)$respuesta["num_identificacion"], (string)$respuesta["password"]);
+                            ControladorRoles::ctrCargarPermisosSesion((int)$respuesta["id_rol"]);
 
                             echo '<script>window.location = "inicio";</script>';
                         } else {
                             echo '<div class="alert alert-warning mt-3 text-center" role="alert">
                                     <i class="icon fas fa-exclamation-triangle mr-1"></i> El usuario se encuentra desactivado.
                                   </div>';
+                            return;
                         }
+
+                        // RF-N09: Impedir el inicio de sesión de usuarios cuyo rol esté inactivo
+                        if (isset($respuesta["rol_estado"]) && $respuesta["rol_estado"] !== "Activo") {
+                            $nombreRol = htmlspecialchars($respuesta["rol_nombre"] ?? "Asignado");
+                            echo '<div class="alert alert-warning mt-3 text-center" role="alert">
+                                    <i class="icon fas fa-user-lock mr-1"></i> El rol asignado a su cuenta (' . $nombreRol . ') se encuentra inactivo.
+                                  </div>';
+                            return;
+                        }
+
+                        $_SESSION["iniciarSesion"]      = "ok";
+                        $_SESSION["id"]                 = $respuesta["id_usuario"];
+                        $_SESSION["nombre"]             = $respuesta["nombre"];
+                        $_SESSION["numIdentificacion"]  = $respuesta["num_identificacion"];
+                        $_SESSION["num_identificacion"] = $respuesta["num_identificacion"];
+                        $_SESSION["correo"]             = $respuesta["correo"];
+                        $_SESSION["rol"]                = (int)$respuesta["id_rol"];
+                        $_SESSION["id_dependencia"]     = (int)$respuesta["id_dependencia"];
+                        $_SESSION["estado"]             = $respuesta["estado"];
+
+                        // RF-N13: Cargar permisos granulares del rol en sesión
+                        ControladorRoles::ctrCargarPermisosSesion((int)$respuesta["id_rol"]);
+
+                        echo '<script>window.location = "inicio";</script>';
                     } else {
                         echo '<div class="alert alert-danger mt-3 text-center" role="alert">
                                 <i class="icon fas fa-ban mr-1"></i> Error al ingresar, usuario o contraseña incorrectos.

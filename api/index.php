@@ -32,7 +32,6 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
-// Respuesta inmediata a peticiones pre-flight de CORS
 if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
     http_response_code(200);
     exit;
@@ -41,7 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 // 3. Captura del método HTTP y fragmentos de ruta
 $metodo = $_SERVER["REQUEST_METHOD"];
 $ruta = $_GET["ruta"] ?? "";
-$partesRuta = array_values(array_filter(explode("/", trim($ruta, "/")), function($segmento) {
+$partesRuta = array_values(array_filter(explode("/", trim($ruta, "/")), function ($segmento) {
     return $segmento !== "";
 }));
 
@@ -67,7 +66,7 @@ RECURSO: USUARIOS (/api/usuarios)
 =============================================*/
 if ($recurso === "usuarios") {
 
-    // GET /api/usuarios/stats -> Estadísticas para tarjetas
+    // GET /api/usuarios/stats -> Estadísticas para tarjetas KPI
     if ($metodo === "GET" && $param1 === "stats") {
         ControladorUsuarios::ctrEstadisticas();
     }
@@ -77,7 +76,7 @@ if ($recurso === "usuarios") {
         ControladorUsuarios::ctrListar();
     }
 
-    // GET /api/usuarios/{id} -> Detalle de usuario
+    // GET /api/usuarios/{id} -> Detalle de usuario y permisos del rol
     if ($metodo === "GET" && is_numeric($param1)) {
         ControladorUsuarios::ctrObtener((int)$param1);
     }
@@ -96,6 +95,113 @@ if ($recurso === "usuarios") {
     if ($metodo === "PATCH" && is_numeric($param1) && $param2 === "estado") {
         $nuevoEstado = $body["estado"] ?? "";
         ControladorUsuarios::ctrCambiarEstado((int)$param1, $nuevoEstado);
+    }
+
+    // DELETE /api/usuarios/{id} -> Eliminar usuario
+    if ($metodo === "DELETE" && is_numeric($param1) && $param2 === null) {
+        ControladorUsuarios::ctrEliminar((int)$param1);
+    }
+
+    RespuestaHelper::error("Método no permitido para este recurso", 405);
+}
+
+/*=============================================
+RECURSO: ROLES Y PERMISOS (/api/roles, /api/permisos)
+=============================================*/
+if ($recurso === "roles") {
+
+    // GET /api/roles/stats -> Estadísticas para tarjetas KPI
+    if ($metodo === "GET" && $param1 === "stats") {
+        ControladorRoles::ctrEstadisticas();
+    }
+
+    // GET /api/roles/permisos -> Catálogo de permisos granulares RBAC
+    if ($metodo === "GET" && $param1 === "permisos") {
+        ControladorRoles::ctrListarPermisos();
+    }
+
+    // GET /api/roles -> Listado general de roles con conteos
+    if ($metodo === "GET" && $param1 === null) {
+        ControladorRoles::ctrListar();
+    }
+
+    // GET /api/roles/{id} -> Detalle de rol y sus permisos asignados
+    if ($metodo === "GET" && is_numeric($param1)) {
+        ControladorRoles::ctrObtener((int)$param1);
+    }
+
+    // POST /api/roles -> Crear nuevo rol y asignar matriz de permisos
+    if ($metodo === "POST" && $param1 === null) {
+        ControladorRoles::ctrCrear($body);
+    }
+
+    // PUT /api/roles/{id} -> Actualizar rol y su matriz de permisos
+    if ($metodo === "PUT" && is_numeric($param1) && $param2 === null) {
+        ControladorRoles::ctrActualizar((int)$param1, $body);
+    }
+
+    // PATCH /api/roles/{id}/estado -> Cambio atómico de estado
+    if ($metodo === "PATCH" && is_numeric($param1) && $param2 === "estado") {
+        $nuevoEstado = $body["estado"] ?? "";
+        ControladorRoles::ctrCambiarEstado((int)$param1, $nuevoEstado);
+    }
+
+    // DELETE /api/roles/{id} -> Eliminar rol
+    if ($metodo === "DELETE" && is_numeric($param1) && $param2 === null) {
+        ControladorRoles::ctrEliminar((int)$param1);
+    }
+
+    RespuestaHelper::error("Método no permitido para este recurso", 405);
+}
+
+if ($recurso === "permisos" && $metodo === "GET") {
+    ControladorRoles::ctrListarPermisos();
+}
+
+/*=============================================
+RECURSO: DEPENDENCIAS (/api/dependencias)
+=============================================*/
+if ($recurso === "dependencias") {
+
+    // GET /api/dependencias/stats -> Estadísticas para tarjetas KPI
+    if ($metodo === "GET" && $param1 === "stats") {
+        ControladorDependencias::ctrEstadisticas();
+    }
+
+    // GET /api/dependencias -> Listado general de dependencias
+    if ($metodo === "GET" && $param1 === null) {
+        ControladorDependencias::ctrListar();
+    }
+
+    // GET /api/dependencias/{id}/responsable -> Encargado del área de la dependencia
+    if (is_numeric($param1) && $param2 === "responsable") {
+        ControladorRadicados::ctrObtenerResponsableDependencia((int)$param1);
+    }
+
+    // GET /api/dependencias/{id} -> Detalle de dependencia
+    if ($metodo === "GET" && is_numeric($param1) && $param2 === null) {
+        ControladorDependencias::ctrObtener((int)$param1);
+    }
+
+    // POST /api/dependencias -> Crear nueva dependencia
+    if ($metodo === "POST" && $param1 === null) {
+        ControladorDependencias::ctrCrear($body);
+    }
+
+    // PUT /api/dependencias/{id} -> Actualizar dependencia
+    if ($metodo === "PUT" && is_numeric($param1) && $param2 === null) {
+        ControladorDependencias::ctrActualizar((int)$param1, $body);
+    }
+
+    // PATCH /api/dependencias/{id}/estado -> Cambio atómico de estado
+    if ($metodo === "PATCH" && is_numeric($param1) && $param2 === "estado") {
+        $nuevoEstado = $body["estado"] ?? "";
+        ControladorDependencias::ctrCambiarEstado((int)$param1, $nuevoEstado);
+    }
+
+    // DELETE /api/dependencias/{id} -> Eliminar dependencia
+    if ($metodo === "DELETE" && is_numeric($param1) && $param2 === null) {
+        ControladorDependencias::ctrEliminar((int)$param1);
     }
 
     RespuestaHelper::error("Método no permitido para este recurso", 405);
@@ -245,7 +351,7 @@ if ($recurso === "subseries" && $metodo === "GET") {
     $catalogos = ModeloRadicados::mdlObtenerCatalogos();
     $subseries = $catalogos["subseries"];
     if (is_numeric($param1)) {
-        $subseries = array_values(array_filter($subseries, function($s) use ($param1) {
+        $subseries = array_values(array_filter($subseries, function ($s) use ($param1) {
             return (int)$s["id_serie"] === (int)$param1;
         }));
     }
