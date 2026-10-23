@@ -17,11 +17,14 @@ require_once __DIR__ . "/../modelos/conexion.php";
 require_once __DIR__ . "/../modelos/usuarios.modelo.php";
 require_once __DIR__ . "/../modelos/roles.modelo.php";
 require_once __DIR__ . "/../modelos/dependencias.modelo.php";
+require_once __DIR__ . "/../modelos/radicados.modelo.php";
+require_once __DIR__ . "/../modelos/seguimiento.modelo.php";
+
 require_once __DIR__ . "/../controladores/usuarios.controlador.php";
 require_once __DIR__ . "/../controladores/roles.controlador.php";
 require_once __DIR__ . "/../controladores/dependencias.controlador.php";
-require_once __DIR__ . "/../modelos/radicados.modelo.php";
 require_once __DIR__ . "/../controladores/radicados.controlador.php";
+require_once __DIR__ . "/../controladores/seguimiento.controlador.php";
 
 // 2. Cabeceras CORS y configuración HTTP
 header("Content-Type: application/json; charset=UTF-8");
@@ -37,7 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 // 3. Captura del método HTTP y fragmentos de ruta
 $metodo = $_SERVER["REQUEST_METHOD"];
 $ruta = $_GET["ruta"] ?? "";
-$partesRuta = array_values(array_filter(explode("/", trim($ruta, "/")), function($segmento) {
+$partesRuta = array_values(array_filter(explode("/", trim($ruta, "/")), function ($segmento) {
     return $segmento !== "";
 }));
 
@@ -226,8 +229,23 @@ if ($recurso === "radicados") {
     }
 
     // GET /api/radicados/{id} -> Detalle de radicado con documentos
-    if ($metodo === "GET" && is_numeric($param1)) {
+    if ($metodo === "GET" && is_numeric($param1) && $param2 === null) {
         ControladorRadicados::ctrObtener((int)$param1);
+    }
+
+    // GET /api/radicados/{id}/timeline (o traza)
+    if ($metodo === "GET" && is_numeric($param1) && in_array($param2, ["timeline", "traza", "historial"], true)) {
+        ControladorSeguimiento::ctrObtenerTrazabilidad((int)$param1);
+    }
+
+    // GET /api/radicados/{id}/descargar -> Descargar archivo digital
+    if ($metodo === "GET" && is_numeric($param1) && $param2 === "descargar") {
+        ControladorSeguimiento::ctrDescargar((int)$param1);
+    }
+
+    // POST /api/radicados/{id}/traza (o movimiento)
+    if ($metodo === "POST" && is_numeric($param1) && in_array($param2, ["traza", "movimiento", "transicion"], true)) {
+        ControladorSeguimiento::ctrRegistrarMovimiento((int)$param1, $body);
     }
 
     // POST /api/radicados -> Radicar documento con adjuntos
@@ -254,8 +272,66 @@ if ($recurso === "remitentes") {
 }
 
 /*=============================================
-RECURSOS AUXILIARES: TRAMITES, ESTADOS, SERIES, SUBSERIES
+RECURSO: SEGUIMIENTO Y TRAZABILIDAD (/api/seguimiento)
 =============================================*/
+if ($recurso === "seguimiento") {
+
+    // GET /api/seguimiento/catalogos -> Listas desplegables para filtros
+    if ($metodo === "GET" && $param1 === "catalogos") {
+        ControladorSeguimiento::ctrCatalogos();
+    }
+
+    // GET /api/seguimiento/publico/{codigo} -> Consulta ciudadana y radicación anónima
+    if ($metodo === "GET" && $param1 === "publico" && !empty($param2)) {
+        ControladorSeguimiento::ctrConsultaPublica($param2);
+    }
+
+    // GET /api/seguimiento -> Consulta con filtros avanzados AGN y semáforo RF-30
+    if ($metodo === "GET" && $param1 === null) {
+        ControladorSeguimiento::ctrListar();
+    }
+
+    // GET /api/seguimiento/{id} -> Detalle completo del radicado
+    if ($metodo === "GET" && is_numeric($param1) && $param2 === null) {
+        ControladorSeguimiento::ctrObtener((int)$param1);
+    }
+
+    // GET /api/seguimiento/{id}/timeline (o traza / historial) -> Línea de tiempo
+    if ($metodo === "GET" && is_numeric($param1) && in_array($param2, ["timeline", "traza", "historial"], true)) {
+        ControladorSeguimiento::ctrObtenerTrazabilidad((int)$param1);
+    }
+
+    // GET /api/seguimiento/{id}/descargar -> Descargar archivo digital
+    if ($metodo === "GET" && is_numeric($param1) && $param2 === "descargar") {
+        ControladorSeguimiento::ctrDescargar((int)$param1);
+    }
+
+    // POST /api/seguimiento/{id}/movimiento (o traza / transicion) -> Registrar hito
+    if ($metodo === "POST" && is_numeric($param1) && in_array($param2, ["movimiento", "traza", "transicion"], true)) {
+        ControladorSeguimiento::ctrRegistrarMovimiento((int)$param1, $body);
+    }
+
+    RespuestaHelper::error("Método no permitido para este recurso", 405);
+}
+
+/*=============================================
+RECURSOS AUXILIARES: ROLES, DEPENDENCIAS, TRAMITES, ESTADOS, SERIES, SUBSERIES
+=============================================*/
+if ($recurso === "roles" && $metodo === "GET") {
+    $roles = ModeloRoles::mdlMostrarRoles("roles");
+    RespuestaHelper::exito($roles, "Listado de roles obtenido correctamente");
+}
+
+if ($recurso === "dependencias" && $metodo === "GET") {
+    // GET /api/dependencias/{id}/responsable -> Encargado del área de la dependencia
+    if (is_numeric($param1) && $param2 === "responsable") {
+        ControladorRadicados::ctrObtenerResponsableDependencia((int)$param1);
+    }
+
+    $dependencias = ModeloDependencias::mdlMostrarDependencias("dependencias");
+    RespuestaHelper::exito($dependencias, "Listado de dependencias obtenido correctamente");
+}
+
 if ($recurso === "tramites" && $metodo === "GET") {
     $catalogos = ModeloRadicados::mdlObtenerCatalogos();
     RespuestaHelper::exito($catalogos["tramites"], "Listado de trámites obtenido correctamente");
@@ -275,7 +351,7 @@ if ($recurso === "subseries" && $metodo === "GET") {
     $catalogos = ModeloRadicados::mdlObtenerCatalogos();
     $subseries = $catalogos["subseries"];
     if (is_numeric($param1)) {
-        $subseries = array_values(array_filter($subseries, function($s) use ($param1) {
+        $subseries = array_values(array_filter($subseries, function ($s) use ($param1) {
             return (int)$s["id_serie"] === (int)$param1;
         }));
     }
