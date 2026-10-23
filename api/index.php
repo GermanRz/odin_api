@@ -155,15 +155,29 @@ if ($recurso === "roles" && $metodo === "GET") {
     RespuestaHelper::exito($roles, "Listado de roles obtenido correctamente");
 }
 
-if ($recurso === "dependencias" && $metodo === "GET") {
-    // GET /api/dependencias/{id}/responsable -> Encargado del área de la dependencia
-    if (is_numeric($param1) && $param2 === "responsable") {
+if ($recurso === "dependencias") {
+    if ($metodo === "GET" && is_numeric($param1) && $param2 === "responsable") {
         ControladorRadicados::ctrObtenerResponsableDependencia((int)$param1);
     }
-
-    $dependencias = ModeloDependencias::mdlMostrarDependencias("dependencias");
-    RespuestaHelper::exito($dependencias, "Listado de dependencias obtenido correctamente");
+    if ($metodo === "GET" && is_numeric($param1) && $param2 === null) {
+        ControladorDependencias::ctrObtener((int)$param1);
+    }
+    if ($metodo === "GET" && $param1 === null) {
+        ControladorDependencias::ctrListar();
+    }
+    if ($metodo === "POST" && $param1 === null) {
+        ControladorDependencias::ctrCrear($body);
+    }
+    if ($metodo === "PUT" && is_numeric($param1) && $param2 === null) {
+        ControladorDependencias::ctrActualizar((int)$param1, $body);
+    }
+    if ($metodo === "PATCH" && is_numeric($param1) && $param2 === "estado") {
+        $nuevoEstado = $body["estado"] ?? "";
+        ControladorDependencias::ctrCambiarEstado((int)$param1, $nuevoEstado);
+    }
+    RespuestaHelper::error("Método no permitido para este recurso", 405);
 }
+
 
 if ($recurso === "tramites" && $metodo === "GET") {
     $catalogos = ModeloRadicados::mdlObtenerCatalogos();
